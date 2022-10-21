@@ -35,3 +35,4 @@ docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -e IMAGE_NAME="
 * [Docs](https://aquasecurity.github.io/trivy/v0.32/docs/)
 * [Blog](https://www.prplbx.com/resources/blog/docker-part2/)
 * [Image Scanning](https://aquasecurity.github.io/trivy/v0.32/docs/vulnerability/scanning/image/)
+* [Format](https://aquasecurity.github.io/trivy/v0.27.1/docs/vulnerability/examples/report/)
