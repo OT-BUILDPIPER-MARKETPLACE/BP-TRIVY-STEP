@@ -22,8 +22,8 @@ else
     logInfoMessage "I'll scan image ${IMAGE_NAME}:${IMAGE_TAG} for only ${SCAN_SEVERITY} severities"
     sleep  $SLEEP_DURATION
     logInfoMessage "Executing command"
-    logInfoMessage "trivy image --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
-    trivy image --severity ${SCAN_SEVERITY} --exit-code 1 ${IMAGE_NAME}:${IMAGE_TAG} 
+    logInfoMessage "trivy image --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
+    trivy image --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG} 
     STATUS=`echo $?`
 fi
 
