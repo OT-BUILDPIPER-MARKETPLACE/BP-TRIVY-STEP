@@ -35,7 +35,7 @@ fi
 if [ $STATUS -eq 0 ]
 then
   logInfoMessage "Congratulations trivy scan succeeded!!!"
-  generateOutput mvn_execute true "Congratulations trivy scan succeeded!!!"
+  generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Congratulations trivy scan succeeded!!!"
 elif [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
   then
     logErrorMessage "Please check triyv scan failed!!!"
