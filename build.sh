@@ -2,6 +2,10 @@
 source functions.sh
 
 logInfoMessage "I'll do the scanning for $SCANNER"
+logInfoMessage "I'll generate report at [${WORKSPACE}${CODEBASE_DIR}]"
+
+cd ${WORKSPACE}/${CODEBASE_DIR}
+
 STATUS=0
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]
 then
