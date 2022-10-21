@@ -2,6 +2,10 @@
 source functions.sh
 
 logInfoMessage "I'll do the scanning for $SCANNER"
+logInfoMessage "I'll generate report at [${WORKSPACE}${CODEBASE_DIR}]"
+
+cd ${WORKSPACE}/${CODEBASE_DIR}
+
 STATUS=0
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]
 then
@@ -22,8 +26,9 @@ else
     logInfoMessage "I'll scan image ${IMAGE_NAME}:${IMAGE_TAG} for only ${SCAN_SEVERITY} severities"
     sleep  $SLEEP_DURATION
     logInfoMessage "Executing command"
-    logInfoMessage "trivy image --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
-    trivy image --severity ${SCAN_SEVERITY} --exit-code 1 ${IMAGE_NAME}:${IMAGE_TAG} 
+    trivy image --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG} 
+    logInfoMessage "trivy image --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
+    trivy image --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG} 
     STATUS=`echo $?`
 fi
 
