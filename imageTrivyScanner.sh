@@ -1,3 +1,6 @@
+#!/bin/bash
+source functions.sh
+
 cd ${WORKSPACE}/${CODEBASE_DIR}
 STATUS=0
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]
