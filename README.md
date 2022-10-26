@@ -39,6 +39,14 @@ docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e
 docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 -e SCAN_SEVERITY="CRITICAL" ot/trivy:0.1
 ```
 
+### Filesystem Scan
+Filesystem scan will scan a filesystem, this BP step can be used independently and with BuildPiper as well
+
+```
+# Successful Scan
+docker run -it --rm -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e SCANNER=FILESYSTEM ot/trivy:0.1
+```
+
 * Debugging
 ```
 docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 --entrypoint bash ot/trivy:0.1
@@ -47,4 +55,5 @@ docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e
 * [Docs](https://aquasecurity.github.io/trivy/v0.32/docs/)
 * [Blog](https://www.prplbx.com/resources/blog/docker-part2/)
 * [Image Scanning](https://aquasecurity.github.io/trivy/v0.32/docs/vulnerability/scanning/image/)
+* [Filesystem Scanning](https://aquasecurity.github.io/trivy/v0.32/docs/vulnerability/scanning/filesystem/)
 * [Format](https://aquasecurity.github.io/trivy/v0.27.1/docs/vulnerability/examples/report/)
