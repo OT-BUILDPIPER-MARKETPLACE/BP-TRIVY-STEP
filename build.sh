@@ -9,7 +9,9 @@ case ${SCANNER} in
   IMAGE)
     ./imageTrivyScanner.sh
     ;;
-
+  FILESYSTEM)
+    ./filesystemTrivyScanner.sh
+    ;;
   *)
     logWarningMessage "Please check incompatible scanner passed!!!"
     generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Please check incompatible scanner passed!!!"

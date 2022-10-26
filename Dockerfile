@@ -4,7 +4,7 @@ RUN apk add --no-cache --upgrade bash
 RUN apk add jq
 
 COPY build.sh .
-COPY imageTrivyScanner.sh .
+COPY *TrivyScanner.sh .
 COPY BP-BASE-SHELL-STEPS/functions.sh .
 
 ENV ACTIVITY_SUB_TASK_CODE BP-TRIVY-TASK
