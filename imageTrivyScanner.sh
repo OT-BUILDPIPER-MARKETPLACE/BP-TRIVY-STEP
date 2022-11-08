@@ -26,7 +26,8 @@ else
     logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
     trivy image -q --severity "${SCAN_SEVERITY}" "${IMAGE_NAME}":"${IMAGE_TAG}" 
     logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
-    STATUS=$(trivy image -q --severity "${SCAN_SEVERITY}" --exit-code 1 "${FORMAT_ARG}" "${OUTPUT_ARG}" "${IMAGE_NAME}":"${IMAGE_TAG}")
+    trivy image -q --severity "${SCAN_SEVERITY}" --exit-code 1 "${FORMAT_ARG}" "${OUTPUT_ARG}" "${IMAGE_NAME}":"${IMAGE_TAG}" 
+    STATUS=$(echo $?)
 fi
 
 if [ $STATUS -eq 0 ]
