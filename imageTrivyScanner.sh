@@ -2,7 +2,7 @@
 source /opt/buildpiper/shell-functions/functions.sh
 source /opt/buildpiper/shell-functions/log-functions.sh
 
-cd ${WORKSPACE}/${CODEBASE_DIR}
+cd "${WORKSPACE}"/"${CODEBASE_DIR}" || exit
 STATUS=0
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]
 then
