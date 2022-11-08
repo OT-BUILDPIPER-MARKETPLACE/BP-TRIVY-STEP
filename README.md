@@ -1,13 +1,25 @@
 # BP-TRIVY-STEP
 A BP step to orchestrate trivy execution
 
+## Important Note
+Since git submodule doesn't support the concept of tags, we have to follow this unorhtodox approach
+So as and when a new tag of BP-BASE-SHELL-STEPS is released we have to perform below operation to update submodule
+```
+cd BP-BASE-SHELL-STEPS
+git checkout v0.2
+cd ..
+git add BP-BASE-SHELL-STEPS
+git commit -m "moved submodule to v0.2"
+git push
+```
+
 ## Setup
 * Clone the code available at [BP-TRIVY-STEP](https://github.com/OT-BUILDPIPER-MARKETPLACE/BP-TRIVY-STEP)
 * Build the docker image
 ```
 git submodule init
 git submodule update
-docker build -t ot/trivy:0.1 .
+docker build -t ot/trivy:0.2 .
 ```
 ## Testing
 This section will give you a walkthrough of how you can use this image to do various types of testing
@@ -31,12 +43,12 @@ If you want to use it independently you have to take care of below things
 
 ```
 # Failed Scan
-docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 ot/trivy:0.1
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 ot/trivy:0.2
 ```
 
 ```
 # Successful Scan
-docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 -e SCAN_SEVERITY="CRITICAL" ot/trivy:0.1
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 -e SCAN_SEVERITY="CRITICAL" ot/trivy:0.2
 ```
 
 ### Filesystem Scan
@@ -44,12 +56,12 @@ Filesystem scan will scan a filesystem, this BP step can be used independently a
 
 ```
 # Successful Scan
-docker run -it --rm -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e SCANNER=FILESYSTEM ot/trivy:0.1
+docker run -it --rm -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e SCANNER=FILESYSTEM ot/trivy:0.2
 ```
 
 * Debugging
 ```
-docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 --entrypoint bash ot/trivy:0.1
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 --entrypoint bash ot/trivy:0.2
 ```
 ## Reference 
 * [Docs](https://aquasecurity.github.io/trivy/v0.32/docs/)
