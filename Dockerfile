@@ -6,7 +6,7 @@ RUN apk add jq
 COPY build.sh .
 COPY imageTrivyScanner.sh .
 COPY filesystemTrivyScanner.sh .
-COPY BP-BASE-SHELL-STEPS/functions.sh .
+ADD BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
 
 ENV ACTIVITY_SUB_TASK_CODE BP-TRIVY-TASK
 ENV SLEEP_DURATION 5s

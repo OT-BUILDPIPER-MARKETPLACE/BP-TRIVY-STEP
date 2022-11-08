@@ -1,5 +1,6 @@
 #!/bin/bash
-source functions.sh
+source /opt/buildpiper/shell-functions/functions.sh
+source /opt/buildpiper/shell-functions/log-functions.sh
 
 cd ${WORKSPACE}/${CODEBASE_DIR}
 STATUS=0

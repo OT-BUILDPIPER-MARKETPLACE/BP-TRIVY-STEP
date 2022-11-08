@@ -1,5 +1,6 @@
 #!/bin/bash
-source functions.sh
+source /opt/buildpiper/shell-functions/functions.sh
+source /opt/buildpiper/shell-functions/log-functions.sh
 
 logInfoMessage "I'll do the scanning for $SCANNER"
 logInfoMessage "I'll generate report at [${WORKSPACE}/${CODEBASE_DIR}]"
