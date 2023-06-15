@@ -2,6 +2,13 @@
 source functions.sh
 
 cd ${WORKSPACE}/${CODEBASE_DIR}
+
+if [ -d "reports" ]; then
+    true
+else
+    mkdir reports 
+fi
+
 STATUS=0
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]
 then
@@ -24,8 +31,8 @@ else
     logInfoMessage "Executing command"
     logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
     trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG} 
-    logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
-    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG} 
+    logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} reports/${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
+    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} reports${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG} 
     STATUS=`echo $?`
 fi
 

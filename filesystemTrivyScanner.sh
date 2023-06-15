@@ -2,6 +2,13 @@
 source functions.sh
 
 cd ${WORKSPACE}/${CODEBASE_DIR}
+
+if [ -d "reports" ]; then
+    true
+else
+    mkdir reports 
+fi
+
 STATUS=0
 
 logInfoMessage "I'll scan Filesystem ${WORKSPACE}/${CODEBASE_DIR} for only ${SCAN_SEVERITY} severities"
@@ -9,8 +16,8 @@ sleep  $SLEEP_DURATION
 logInfoMessage "Executing command"
 logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} ${WORKSPACE}/${CODEBASE_DIR}"
 trivy fs -q --severity ${SCAN_SEVERITY} ${WORKSPACE}/${CODEBASE_DIR}
-logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
-trivy fs -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}
+logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} reports/${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
+trivy fs -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} reports/${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}
 STATUS=`echo $?`
 
 
