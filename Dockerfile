@@ -15,5 +15,5 @@ ENV SCANNER "IMAGE"
 ENV SCAN_SEVERITY "HIGH,CRITICAL"
 ENV FORMAT_ARG "--format template --template @/contrib/html.tpl"
 ENV OUTPUT_ARG "-o trivy-report.html"
-
+ENV FORMAT_ARGONE "--format table"
 ENTRYPOINT [ "./build.sh" ]
