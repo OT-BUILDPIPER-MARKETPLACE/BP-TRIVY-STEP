@@ -32,7 +32,7 @@ else
     logInfoMessage "trivy image --scanners vuln ${IMAGE_NAME}:${IMAGE_TAG}"
     trivy image --scanners vuln ${IMAGE_NAME}:${IMAGE_TAG}
     logInfoMessage "trivy image --scanners vuln --exit-code 1 ${IMAGE_NAME}:${IMAGE_TAG}"
-    trivy image -q --scanners vuln --exit-code 1 ${IMAGE_NAME}:${IMAGE_TAG} ${FORMAT_ARGONE} > trivy_output.txt
+    trivy image --scanners vuln --exit-code 1 ${IMAGE_NAME}:${IMAGE_TAG} ${FORMAT_ARGONE} > trivy_output.txt
     STATUS=`echo $?`
 fi
 # trivy image --scanners vuln image:tag --format table > trivy_output.txt
