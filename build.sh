@@ -22,6 +22,9 @@ case ${SCANNER} in
   SECRETS)
     ./secretTrivyScanner.sh
     ;;
+  SBOM)
+    ./sbomTrivyScanner.sh
+    ;;
   *)
     logWarningMessage "Please check incompatible scanner passed!!!"
     generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Please check incompatible scanner passed!!!"
