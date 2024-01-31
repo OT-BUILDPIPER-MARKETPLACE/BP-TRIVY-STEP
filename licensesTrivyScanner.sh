@@ -1,12 +1,13 @@
 #!/bin/bash
 source functions.sh
 source log-functions.sh
+
 cd ${WORKSPACE}/${CODEBASE_DIR}
 
 if [ -d "reports" ]; then
     true
 else
-    mkdir reports 
+    mkdir reports
 fi
 
 STATUS=0
@@ -26,13 +27,13 @@ then
     logInfoMessage "Image Tag -> ${IMAGE_TAG}"
     STATUS=1
 else
-    logInfoMessage "I'll scan image ${IMAGE_NAME}:${IMAGE_TAG} for only ${SCAN_SEVERITY} severities"
+    logInfoMessage "I'll scan image ${IMAGE_NAME}:${IMAGE_TAG} for only vulnerabilities"
     sleep  $SLEEP_DURATION
     logInfoMessage "Executing command"
-    logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
-    trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG} 
-    logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} reports/${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
-    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} reports${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG} 
+    logInfoMessage "trivy image --scanners vuln ${IMAGE_NAME}:${IMAGE_TAG}"
+    trivy image --scanners license ${IMAGE_NAME}:${IMAGE_TAG}
+    logInfoMessage "trivy image --scanners ${IMAGE_NAME}:${IMAGE_TAG}"
+    trivy image --scanners license ${IMAGE_NAME}:${IMAGE_TAG} > trivylicense_output.txt
     STATUS=`echo $?`
 fi
 

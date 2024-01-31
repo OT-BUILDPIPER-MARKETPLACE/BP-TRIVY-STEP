@@ -16,6 +16,9 @@ case ${SCANNER} in
   VULNERABILITIES)
     ./VulnerabilitiesTrivyScanner.sh
     ;;
+  LICENSES)
+    ./licensesTrivyScanner.sh
+    ;;
   *)
     logWarningMessage "Please check incompatible scanner passed!!!"
     generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Please check incompatible scanner passed!!!"

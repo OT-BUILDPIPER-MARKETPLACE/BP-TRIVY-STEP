@@ -1,6 +1,6 @@
 #!/bin/bash
 source functions.sh
-
+source log-functions.sh
 cd ${WORKSPACE}/${CODEBASE_DIR}
 
 if [ -d "reports" ]; then
