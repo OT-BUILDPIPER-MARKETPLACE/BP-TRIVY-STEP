@@ -6,6 +6,9 @@ RUN apk add jq
 COPY build.sh .
 COPY imageTrivyScanner.sh .
 COPY filesystemTrivyScanner.sh .
+COPY VulnerabilitiesTrivyScanner.sh .
+COPY licensesTrivyScanner.sh .
+COPY secretTrivyScanner.sh .
 COPY BP-BASE-SHELL-STEPS .
 
 ENV ACTIVITY_SUB_TASK_CODE BP-TRIVY-TASK
