@@ -19,6 +19,9 @@ case ${SCANNER} in
   LICENSES)
     ./licensesTrivyScanner.sh
     ;;
+  SECRETS)
+    ./secretTrivyScanner.sh
+    ;;
   *)
     logWarningMessage "Please check incompatible scanner passed!!!"
     generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Please check incompatible scanner passed!!!"
