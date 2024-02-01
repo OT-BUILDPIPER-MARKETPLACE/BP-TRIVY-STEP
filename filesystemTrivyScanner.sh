@@ -16,7 +16,7 @@ sleep  $SLEEP_DURATION
 logInfoMessage "Executing command"
 logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} ${WORKSPACE}/${CODEBASE_DIR}"
 trivy fs -q --severity ${SCAN_SEVERITY} ${WORKSPACE}/${CODEBASE_DIR}
-logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} reports/${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
+logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} -o reports/${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
 trivy fs -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} reports/${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}
 STATUS=`echo $?`
 
