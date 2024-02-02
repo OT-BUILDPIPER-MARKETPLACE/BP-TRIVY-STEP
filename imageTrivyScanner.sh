@@ -1,5 +1,16 @@
 #!/bin/bash
 source functions.sh
+source mi-functions.sh
+source log-functions.sh
+source file-functions.sh
+
+
+export application=ot-demo-ms
+export environment=`getProjectEnv`
+export service=`getServiceName`
+export organization=bp
+export source_key=trivy
+export report_file_path=null
 
 cd ${WORKSPACE}/${CODEBASE_DIR}
 
@@ -29,11 +40,18 @@ else
     logInfoMessage "I'll scan image ${IMAGE_NAME}:${IMAGE_TAG} for only ${SCAN_SEVERITY} severities"
     sleep  $SLEEP_DURATION
     logInfoMessage "Executing command"
-    logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
-    trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG} 
-    logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} reports/${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
-    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} reports${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG} 
+    # logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
+    # trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG} 
+    logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
+    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}
+    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 --format template --template '{{- $critical := 0 }}{{- $high := 0 }}{{- range . }}{{- range .Vulnerabilities }}{{- if  eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}{{- if  eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}{{- end }}{{- end }}Critical: {{ $critical }}, High: {{ $high }}' ${IMAGE_NAME}:${IMAGE_TAG} ${OUTPUT_ARG}
+    ./template2CSV.sh
+
     STATUS=`echo $?`
+    export base64EncodedResponse=`encodeFileContent reports/mi.csv`
+    generateMIDataJson /opt/buildpiper/data/mi.template trivy.mi
+    cat trivy.mi
+    sendMIData trivy.mi http://122.160.30.218:60901
 fi
 
 if [ $STATUS -eq 0 ]
