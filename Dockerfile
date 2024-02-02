@@ -6,6 +6,7 @@ RUN apk add jq
 COPY build.sh .
 COPY imageTrivyScanner.sh .
 COPY filesystemTrivyScanner.sh .
+COPY template2CSV.sh .
 COPY BP-BASE-SHELL-STEPS/functions.sh .
 COPY BP-BASE-SHELL-STEPS/log-functions.sh .
 COPY BP-BASE-SHELL-STEPS/mi-functions.sh .
