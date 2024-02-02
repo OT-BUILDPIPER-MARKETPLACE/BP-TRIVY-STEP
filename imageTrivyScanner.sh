@@ -4,7 +4,7 @@ source mi-functions.sh
 source log-functions.sh
 source file-functions.sh
 
-export base64EncodedResponse=`encodeFileContent reports/trivy-results.json`
+export base64EncodedResponse="reports/trivy-results.json"
 export application=ot-demo-ms
 export environment=`getProjectEnv`
 export service=`getServiceName`
