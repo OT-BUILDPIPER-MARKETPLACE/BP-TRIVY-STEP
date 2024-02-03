@@ -1,11 +1,13 @@
 #!/bin/bash
 source functions.sh
-
-logInfoMessage "I'll do the scanning for $SCANNER"
+source log-functions.sh
+logInfoMessage "I'll do the scanning for ${SCANNER}"
 logInfoMessage "I'll generate report at [${WORKSPACE}/${CODEBASE_DIR}]"
 
 case ${SCANNER} in
-
+  REPO)
+    ./repoTrivyScanner.sh
+    ;;
   IMAGE)
     ./imageTrivyScanner.sh
     ;;
@@ -17,5 +19,3 @@ case ${SCANNER} in
     generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Please check incompatible scanner passed!!!"
     ;;
 esac
-
-
