@@ -1,7 +1,7 @@
 #!/bin/bash
 source functions.sh
 source log-functions.sh
-cd ${WORKSPACE}/${CODEBASE_DIR}
+cd  "${WORKSPACE}"/"${CODEBASE_DIR}"
 
 if [ -d "reports" ]; then
     true
@@ -29,23 +29,28 @@ else
     logInfoMessage "I'll scan image ${IMAGE_NAME}:${IMAGE_TAG} for only ${SCAN_SEVERITY} severities"
     sleep  $SLEEP_DURATION
     logInfoMessage "Executing command"
-    logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
-    trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG} 
-    logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} -o reports/${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
-    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} -o reports${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG} 
-    STATUS=`echo $?`
+    logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --scanners ${SCAN_TYPE} --exit-code 1 --format ${FORMAT_ARG} -o reports/${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
+    trivy image -q --severity "${SCAN_SEVERITY}" --scanners "${SCAN_TYPE}" --exit-code 1 --format "${FORMAT_ARG}" -o reports/"${OUTPUT_ARG}" "${IMAGE_NAME}":"${IMAGE_TAG}" 
+   STATUS=$(echo $?)
 fi
 
-if [ $STATUS -eq 0 ]
+if [ -s "reports/${OUTPUT_ARG}" ]; then
+   cat reports/"${OUTPUT_ARG}"
+else
+    echo "NO ${SCAN_TYPE} FOUND"
+fi
+
+if [ "$STATUS" -eq 0 ]
 then
   logInfoMessage "Congratulations trivy scan succeeded!!!"
-  generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Congratulations trivy scan succeeded!!!"
-elif [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
+  generateOutput "${ACTIVITY_SUB_TASK_CODE}" true "Congratulations trivy scan succeeded!!!"
+elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]
   then
     logErrorMessage "Please check triyv scan failed!!!"
-    generateOutput ${ACTIVITY_SUB_TASK_CODE} false "Please check triyv scan failed!!!"
+    generateOutput "${ACTIVITY_SUB_TASK_CODE}" false "Please check triyv scan failed!!!"
     exit 1
    else
     logWarningMessage "Please check triyv scan failed!!!"
-    generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Please check triyv scan failed!!!"
+    generateOutput "${ACTIVITY_SUB_TASK_CODE}" true "Please check triyv scan failed!!!"
+    exit 1
 fi

@@ -13,9 +13,10 @@ docker build -t ot/trivy:0.1 .
 This section will give you a walkthrough of how you can use this image to do various types of testing
 Some of the global environment variables that control the behaviour of scanning
 * SCAN_SEVERITY | Default - HIGH,CRITICAL | For possible values check documentation
-* FORMAT_ARG | Default - html | For possible values check documentation
-* OUTPUT_ARG | Default - trivy-report.html | Give any path as per your preference
-
+* FORMAT_ARG | Default - json | For possible values check documentation
+* OUTPUT_ARG | Default - trivy-report.json | Give any path as per your preference
+* SCANNER    REPO,IMAGE,FILESYSTEM
+* SCAN_TYPE  vuln,license,secret
 
 ### Docker Image Scan
 
@@ -36,20 +37,21 @@ docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e
 
 ```
 # Successful Scan
-docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 -e SCAN_SEVERITY="CRITICAL" ot/trivy:0.1
+docker run -it --rm -v $PWD:/src -e SCANNER=IMAGE -e SCAN_TYPE=vuln -e WORKSPACE=/ -e CODEBASE_DIR=src -e FORMAT_ARG=table -e OUTPUT_ARG=trivy-report.txt -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=latest ot/trivy:0.1
 ```
 
 ### Filesystem Scan
 Filesystem scan will scan a filesystem, this BP step can be used independently and with BuildPiper as well
 
+
 ```
 # Successful Scan
-docker run -it --rm -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e SCANNER=FILESYSTEM ot/trivy:0.1
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e SCANNER=REPO -e SCAN_TYPE=secret -e FORMAT_ARG=table -e OUTPUT_ARG=trivy-report.txt -e WORKSPACE=/ -e CODEBASE_DIR=src ot/trivy:0.1
 ```
 
 * Debugging
 ```
-docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 --entrypoint bash ot/trivy:0.1
+docker run -it --rm -v $PWD:/src -e SCANNER=REPO -e SCAN_TYPE=secret -e FORMAT_ARG=table -e OUTPUT_ARG=trivy-report.txt -e WORKSPACE=/ -e CODEBASE_DIR=src ot/trivy:0.1
 ```
 ## Reference 
 * [Docs](https://aquasecurity.github.io/trivy/v0.32/docs/)
