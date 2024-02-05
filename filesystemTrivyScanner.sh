@@ -1,7 +1,10 @@
 #!/bin/bash
-source functions.sh
-source log-functions.sh
-cd  "${WORKSPACE}"/"${CODEBASE_DIR}"
+source /opt/buildpiper/shell-functions/functions.sh
+source /opt/buildpiper/shell-functions/log-functions.sh
+
+CODEBASE_LOCATION="${WORKSPACE}"/"${CODEBASE_DIR}"
+logInfoMessage "I'll do processing at [$CODEBASE_LOCATION]"
+cd "${CODEBASE_LOCATION}"
 
 if [ -d "reports" ]; then
     true
@@ -11,18 +14,22 @@ fi
 
 STATUS=0
 
-    logInfoMessage "I'll scan source-code licenses ${WORKSPACE}/${CODEBASE_DIR} for only ${SCAN_SEVERITY} severities"
-    sleep  "$SLEEP_DURATION"
-    logInfoMessage "Executing command"
-    logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --scanners ${SCAN_TYPE} --exit-code 1 ${FORMAT_ARG} -o reports/${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
-    trivy fs -q --severity "${SCAN_SEVERITY}" --scanners "${SCAN_TYPE}" --exit-code 1 --format "${FORMAT_ARG}" -o reports/"${OUTPUT_ARG}" "${WORKSPACE}"/"${CODEBASE_DIR}"
-STATUS=$(echo $?)
-if [ -s "reports/${OUTPUT_ARG}" ]; then
-   cat reports/"${OUTPUT_ARG}"
+if [ -n "${SCAN_TYPE}" ]; then
+    echo "SCAN_TYPE is ${SCAN_TYPE}"
 else
-    echo "NO ${SCAN_TYPE} FOUND IN SOURCE CODE "
+    echo "SCAN_TYPE is not found "
+    exit 1
 fi
 
+    logInfoMessage "I'll scan file in ${WORKSPACE}/${CODEBASE_DIR} for only ${SCAN_SEVERITY} severities"
+    sleep  "$SLEEP_DURATION"
+    logInfoMessage "Executing command"
+    logInfoMessage "trivy repo -q --severity ${SCAN_SEVERITY} --scanners ${SCAN_TYPE} --exit-code 1 --format ${FORMAT_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
+    trivy repo -q --severity "${SCAN_SEVERITY}" --scanners "${SCAN_TYPE}" --exit-code 1 --format "${FORMAT_ARG}" "${WORKSPACE}"/"${CODEBASE_DIR}"
+
+    logInfoMessage "trivy repo -q --severity ${SCAN_SEVERITY} --scanners ${SCAN_TYPE} --exit-code 1 --format json -o reports/${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
+    trivy repo -q --severity "${SCAN_SEVERITY}" --scanners "${SCAN_TYPE}" --exit-code 1 --format json -o reports/"${OUTPUT_ARG}" "${WORKSPACE}"/"${CODEBASE_DIR}"
+STATUS=$(echo $?)
 
 if [ "$STATUS" -eq 0 ]
 then
