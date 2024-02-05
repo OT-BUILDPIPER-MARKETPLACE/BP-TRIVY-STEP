@@ -24,11 +24,11 @@ fi
     logInfoMessage "I'll scan file in ${WORKSPACE}/${CODEBASE_DIR} for only ${SCAN_SEVERITY} severities"
     sleep  "$SLEEP_DURATION"
     logInfoMessage "Executing command"
-    logInfoMessage "trivy repo -q --severity ${SCAN_SEVERITY} --scanners ${SCAN_TYPE} --exit-code 1 --format ${FORMAT_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
-    trivy repo -q --severity "${SCAN_SEVERITY}" --scanners "${SCAN_TYPE}" --exit-code 1 --format "${FORMAT_ARG}" "${WORKSPACE}"/"${CODEBASE_DIR}"
+    logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --scanners ${SCAN_TYPE} --exit-code 1 --format ${FORMAT_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
+    trivy fs -q --severity "${SCAN_SEVERITY}" --scanners "${SCAN_TYPE}" --exit-code 1 --format "${FORMAT_ARG}" "${WORKSPACE}"/"${CODEBASE_DIR}"
 
-    logInfoMessage "trivy repo -q --severity ${SCAN_SEVERITY} --scanners ${SCAN_TYPE} --exit-code 1 --format json -o reports/${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
-    trivy repo -q --severity "${SCAN_SEVERITY}" --scanners "${SCAN_TYPE}" --exit-code 1 --format json -o reports/"${OUTPUT_ARG}" "${WORKSPACE}"/"${CODEBASE_DIR}"
+    logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --scanners ${SCAN_TYPE} --exit-code 1 --format json -o reports/${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
+    trivy fs -q --severity "${SCAN_SEVERITY}" --scanners "${SCAN_TYPE}" --exit-code 1 --format json -o reports/"${OUTPUT_ARG}" "${WORKSPACE}"/"${CODEBASE_DIR}"
 STATUS=$(echo $?)
 
 if [ "$STATUS" -eq 0 ]
