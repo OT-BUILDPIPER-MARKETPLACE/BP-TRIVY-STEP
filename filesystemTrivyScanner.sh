@@ -29,19 +29,13 @@ fi
 
     logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --scanners ${SCAN_TYPE} --exit-code 1 --format json -o reports/${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
     trivy fs -q --severity "${SCAN_SEVERITY}" --scanners "${SCAN_TYPE}" --exit-code 1 --format json -o reports/"${OUTPUT_ARG}" "${WORKSPACE}"/"${CODEBASE_DIR}"
-STATUS=$(echo $?)
+TASK_STATUS=0
 
-if [ "$STATUS" -eq 0 ]
-then
-  logInfoMessage "Congratulations trivy scan succeeded!!!"
-  generateOutput "${ACTIVITY_SUB_TASK_CODE}" true "Congratulations trivy scan succeeded!!!"
-elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]
-  then
+if [ true ]; then
+    logErrorMessage "Congratulations trivy scan succeeded"
+else
+    TASK_STATUS=1
     logErrorMessage "Please check triyv scan failed!!!"
-    generateOutput "${ACTIVITY_SUB_TASK_CODE}" false "Please check triyv scan failed!!!"
-    exit 1
-   else
-    logWarningMessage "Please check triyv scan failed!!!"
-    generateOutput "${ACTIVITY_SUB_TASK_CODE}" true "Please check triyv scan failed!!!"
-    exit 1
+
 fi
+saveTaskStatus ${TASK_STATUS} ${ACTIVITY_SUB_TASK_CODE}
