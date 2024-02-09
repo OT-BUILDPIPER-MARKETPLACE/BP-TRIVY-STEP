@@ -9,9 +9,9 @@ logInfoMessage "I'll generate report at [${WORKSPACE}/${CODEBASE_DIR}]"
 fi
 
 if [ -n "${SCAN_TYPE}" ]; then
-    echo "SCAN_TYPE is ${SCAN_TYPE}"
+    logInfoMessage "SCAN_TYPE is ${SCAN_TYPE}"
 else
-    echo "SCAN_TYPE is not found "
+    logInfoMessage "SCAN_TYPE is not found "
     exit 1
 fi
 
