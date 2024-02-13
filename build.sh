@@ -1,17 +1,12 @@
 #!/bin/bash
-source /opt/buildpiper/shell-functions/functions.sh
-source /opt/buildpiper/shell-functions/log-functions.sh
+source /app/buildpiper/shell-functions/functions.sh
+source /app/buildpiper/shell-functions/log-functions.sh
 
-if [ -n "${SCANNER}" ]; then
-logInfoMessage "I'll do the scanning for ${SCANNER}"
-else
-logInfoMessage "I'll generate report at [${WORKSPACE}/${CODEBASE_DIR}]"
-fi
-
+logInfoMessage "I'll do the scanning for scanner -> ${SCANNER}"
 if [ -n "${SCAN_TYPE}" ]; then
-    logInfoMessage "SCAN_TYPE is ${SCAN_TYPE}"
+    logInfoMessage "I'll do the scanning for scan_type -> ${SCAN_TYPE}"
 else
-    logInfoMessage "SCAN_TYPE is not found "
+    logWarningMessage "SCAN_TYPE is not found "
     exit 1
 fi
 
@@ -25,6 +20,7 @@ case "${SCANNER}" in
     ;;
   *)
     logWarningMessage "Please check incompatible scanner passed!!!"
-    generateOutput "${ACTIVITY_SUB_TASK_CODE} true Please check incompatible scanner passed!!!"
+    generateOutput "${ACTIVITY_SUB_TASK_CODE}" true "Please check incompatible scanner passed!!!"
+    exit 1
     ;;
 esac

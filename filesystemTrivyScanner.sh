@@ -1,6 +1,6 @@
 #!/bin/bash
-source /opt/buildpiper/shell-functions/functions.sh
-source /opt/buildpiper/shell-functions/log-functions.sh
+source /app/buildpiper/shell-functions/functions.sh
+source /app/buildpiper/shell-functions/log-functions.sh
 
 CODEBASE_LOCATION="${WORKSPACE}"/"${CODEBASE_DIR}"
 cd "${CODEBASE_LOCATION}" || exit
@@ -13,7 +13,7 @@ fi
 
 STATUS=0
 
-    logInfoMessage "I'll scan file in ${WORKSPACE}/${CODEBASE_DIR} for only ${SCAN_SEVERITY} severities"
+    logInfoMessage "I'll scan file in ${CODEBASE_LOCATION} for only ${SCAN_SEVERITY} severities"
     sleep  "$SLEEP_DURATION"
     logInfoMessage "Executing command"
     logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --scanners ${SCAN_TYPE} --exit-code 1 --format ${FORMAT_ARG} ${CODEBASE_LOCATION}"

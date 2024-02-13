@@ -1,6 +1,6 @@
 #!/bin/bash
-source /opt/buildpiper/shell-functions/functions.sh
-source /opt/buildpiper/shell-functions/log-functions.sh
+source /app/buildpiper/shell-functions/functions.sh
+source /app/buildpiper/shell-functions/log-functions.sh
 
 CODEBASE_LOCATION="${WORKSPACE}"/"${CODEBASE_DIR}"
 cd "${CODEBASE_LOCATION}" || exit
