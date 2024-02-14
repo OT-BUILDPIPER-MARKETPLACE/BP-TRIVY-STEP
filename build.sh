@@ -19,7 +19,7 @@ case "${SCANNER}" in
     ./filesystemTrivyScanner.sh
     ;;
   *)
-    logWarningMessage "Please check incompatible scanner passed!!!"
+    logErrorMessage "Please check incompatible scanner passed!!!"
     generateOutput "${ACTIVITY_SUB_TASK_CODE}" true "Please check incompatible scanner passed!!!"
     exit 1
     ;;
