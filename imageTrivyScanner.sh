@@ -12,7 +12,8 @@ else
 fi
 
 STATUS=0
-
+IMAGE_NAME=`getComponentName`
+IMAGE_TAG=`getRepositoryTag`
 
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     logErrorMessage "Image name/tag is not provided in env variable please check!!!!!!"
