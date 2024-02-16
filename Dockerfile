@@ -1,20 +1,25 @@
-FROM aquasec/trivy:0.32.1
+FROM aquasec/trivy:0.48.3
 
-RUN apk add --no-cache --upgrade bash
-RUN apk add jq
+RUN apk add --no-cache --upgrade bash && \
+    apk add jq
 
-COPY build.sh .
-COPY imageTrivyScanner.sh .
+WORKDIR /app
+
 COPY filesystemTrivyScanner.sh .
-COPY BP-BASE-SHELL-STEPS/functions.sh .
-COPY BP-BASE-SHELL-STEPS/log-functions.sh .
+COPY imageTrivyScanner.sh .
+COPY build.sh .
+ADD BP-BASE-SHELL-STEPS /app/buildpiper/shell-functions/
 
 ENV ACTIVITY_SUB_TASK_CODE BP-TRIVY-TASK
 ENV SLEEP_DURATION 5s
 ENV VALIDATION_FAILURE_ACTION WARNING
-ENV SCANNER "IMAGE"
-ENV SCAN_SEVERITY "HIGH,CRITICAL"
-ENV FORMAT_ARG "--format template --template @/contrib/html.tpl"
-ENV OUTPUT_ARG "-o trivy-report.html"
+ENV SCANNER ""
+ENV IMAGE_NAME ""
+ENV IMAGE_TAG ""
 
+ENV SCAN_TYPE ""
+ENV SCAN_SEVERITY "HIGH,CRITICAL"
+ENV FORMAT_ARG "table"
+ENV OUTPUT_ARG "trivy-report.json"
 ENTRYPOINT [ "./build.sh" ]
+

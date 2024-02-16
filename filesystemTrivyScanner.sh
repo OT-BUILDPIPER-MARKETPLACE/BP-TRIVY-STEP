@@ -1,36 +1,25 @@
 #!/bin/bash
-source functions.sh
+source /app/buildpiper/shell-functions/functions.sh
+source /app/buildpiper/shell-functions/log-functions.sh
 
-cd ${WORKSPACE}/${CODEBASE_DIR}
+CODEBASE_LOCATION="${WORKSPACE}"/"${CODEBASE_DIR}"
+cd "${CODEBASE_LOCATION}" || exit
 
 if [ -d "reports" ]; then
     true
 else
-    mkdir reports 
+    mkdir reports
 fi
 
 STATUS=0
 
-logInfoMessage "I'll scan Filesystem ${WORKSPACE}/${CODEBASE_DIR} for only ${SCAN_SEVERITY} severities"
-sleep  $SLEEP_DURATION
-logInfoMessage "Executing command"
-logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} ${WORKSPACE}/${CODEBASE_DIR}"
-trivy fs -q --severity ${SCAN_SEVERITY} ${WORKSPACE}/${CODEBASE_DIR}
-logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} reports/${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
-trivy fs -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} reports/${OUTPUT_ARG} ${WORKSPACE}/${CODEBASE_DIR}
-STATUS=`echo $?`
+    logInfoMessage "I'll scan file in ${CODEBASE_LOCATION} for only ${SCAN_SEVERITY} severities"
+    sleep  "$SLEEP_DURATION"
+    logInfoMessage "Executing command"
+    logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --scanners ${SCAN_TYPE} --exit-code 1 --format ${FORMAT_ARG} ${CODEBASE_LOCATION}"
+    trivy fs -q --severity "${SCAN_SEVERITY}" --scanners "${SCAN_TYPE}" --exit-code 1 --format "${FORMAT_ARG}" "${CODEBASE_LOCATION}"
 
+    trivy fs -q --severity "${SCAN_SEVERITY}" --scanners "${SCAN_TYPE}" --exit-code 1 --format json -o reports/"${OUTPUT_ARG}" "${CODEBASE_LOCATION}"
+TASK_STATUS=$(echo $?)
 
-if [ $STATUS -eq 0 ]
-then
-  logInfoMessage "Congratulations trivy scan succeeded!!!"
-  generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Congratulations trivy scan succeeded!!!"
-elif [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
-  then
-    logErrorMessage "Please check triyv scan failed!!!"
-    generateOutput ${ACTIVITY_SUB_TASK_CODE} false "Please check triyv scan failed!!!"
-    exit 1
-   else
-    logWarningMessage "Please check triyv scan failed!!!"
-    generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Please check triyv scan failed!!!"
-fi
+saveTaskStatus "${TASK_STATUS}" "${ACTIVITY_SUB_TASK_CODE}"
