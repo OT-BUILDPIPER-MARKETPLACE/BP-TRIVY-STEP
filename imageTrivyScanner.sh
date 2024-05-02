@@ -1,8 +1,11 @@
 #!/bin/bash
-source functions.sh
-source mi-functions.sh
-source log-functions.sh
-source file-functions.sh
+
+source /opt/buildpiper/shell-functions/functions.sh
+source /opt/buildpiper/shell-functions/mi-functions.sh
+source /opt/buildpiper/shell-functions/log-functions.sh
+source /opt/buildpiper/shell-functions/str-functions.sh
+source /opt/buildpiper/shell-functions/file-functions.sh
+source /opt/buildpiper/shell-functions/aws-functions.sh
 
 
 export application=ot-demo-ms
@@ -45,13 +48,14 @@ else
     logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
     trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}
     trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 --format template --template '{{- $critical := 0 }}{{- $high := 0 }}{{- range . }}{{- range .Vulnerabilities }}{{- if  eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}{{- if  eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}{{- end }}{{- end }}Critical: {{ $critical }}, High: {{ $high }}' ${IMAGE_NAME}:${IMAGE_TAG} ${OUTPUT_ARG}
+    echo $(ls)
     ./template2CSV.sh
 
     STATUS=`echo $?`
     export base64EncodedResponse=`encodeFileContent reports/mi.csv`
     generateMIDataJson /opt/buildpiper/data/mi.template trivy.mi
     cat trivy.mi
-    sendMIData trivy.mi http://122.160.30.218:60901
+    sendMIData trivy.mi ${MI_SERVER_ADDRESS}
 fi
 
 if [ $STATUS -eq 0 ]

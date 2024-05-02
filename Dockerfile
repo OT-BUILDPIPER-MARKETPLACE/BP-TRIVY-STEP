@@ -7,12 +7,12 @@ COPY build.sh .
 COPY imageTrivyScanner.sh .
 COPY filesystemTrivyScanner.sh .
 COPY template2CSV.sh .
-COPY BP-BASE-SHELL-STEPS/functions.sh .
-COPY BP-BASE-SHELL-STEPS/log-functions.sh .
-COPY BP-BASE-SHELL-STEPS/mi-functions.sh .
-COPY BP-BASE-SHELL-STEPS/file-functions.sh .
+RUN ls
+ADD BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
 ADD BP-BASE-SHELL-STEPS/data /opt/buildpiper/data
+RUN chmod +x build.sh
 
+ENV MI_SERVER_ADDRESS ""
 ENV ACTIVITY_SUB_TASK_CODE BP-TRIVY-TASK
 ENV SLEEP_DURATION 5s
 ENV VALIDATION_FAILURE_ACTION WARNING
