@@ -8,12 +8,12 @@ source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
 
 
-export application=ot-demo-ms
+export application=$APPLICATION_NAME
 export environment=`getProjectEnv`
 export service=`getServiceName`
-export organization=bp
-export source_key=trivy
-export report_file_path=null
+export organization=$ORGANIZATION
+export source_key=$SOURCE_KEY
+export report_file_path=$REPORT_FILE_PATH
 
 cd ${WORKSPACE}/${CODEBASE_DIR}
 
