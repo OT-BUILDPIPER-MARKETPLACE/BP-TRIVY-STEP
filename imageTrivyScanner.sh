@@ -7,7 +7,6 @@ source /opt/buildpiper/shell-functions/str-functions.sh
 source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
 
-
 export application=$APPLICATION_NAME
 export environment=`getProjectEnv`
 export service=`getServiceName`
@@ -27,10 +26,11 @@ STATUS=0
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]
 then
     logInfoMessage "Image name/tag is not provided in env variable $IMAGE_NAME checking it in BP data"
-    logInfoMessage "Image Name -> ${IMAGE_NAME}"
-    logInfoMessage "Image Tag -> ${IMAGE_TAG}"
     IMAGE_NAME=`getComponentName`
     IMAGE_TAG=`getRepositoryTag`
+    logInfoMessage "Image Name -> ${IMAGE_NAME}"
+    logInfoMessage "Image Tag -> ${IMAGE_TAG}"
+
 fi
 
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]
@@ -44,12 +44,21 @@ else
     sleep  $SLEEP_DURATION
     logInfoMessage "Executing command"
     # logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
-    # trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG} 
+    trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG} 
     logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
+    mkdir -p reports
     trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}
-    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 --format template --template '{{- $critical := 0 }}{{- $high := 0 }}{{- range . }}{{- range .Vulnerabilities }}{{- if  eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}{{- if  eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}{{- end }}{{- end }}Critical: {{ $critical }}, High: {{ $high }}' ${IMAGE_NAME}:${IMAGE_TAG} ${OUTPUT_ARG}
-    echo $(ls)
-    ./template2CSV.sh
+    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 --format template --template '{{- $critical := 0 }}{{- $high := 0 }}{{- range . }}{{- range .Vulnerabilities }}{{- if  eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}{{- if  eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}{{- end }}{{- end }}Critical: {{ $critical }}, High: {{ $high }}' ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}
+    awk 'BEGIN { FS="[:,]"; OFS="," }
+    {
+        for (i = 1; i <= NF; i += 2) {
+            gsub(/ /, "", $i); # Remove spaces from keys
+            header = (header ? header OFS : "") $i;
+            value = (value ? value OFS : "") $(i+1);
+        }
+        print header > "reports/mi.csv";
+        print value >> "reports/mi.csv";
+    }' reports/trivy-results.json
 
     STATUS=`echo $?`
     export base64EncodedResponse=`encodeFileContent reports/mi.csv`
