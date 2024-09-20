@@ -7,7 +7,9 @@ A BP step to orchestrate trivy execution
 ```
 git submodule init
 git submodule update
-docker build -t ot/trivy:0.1 .
+cd BP-BASE-SHELL-STEPS
+git checkout v0.7
+docker build -t ot/trivy:0.4-mi .
 ```
 ## Testing
 This section will give you a walkthrough of how you can use this image to do various types of testing
@@ -31,12 +33,12 @@ If you want to use it independently you have to take care of below things
 
 ```
 # Failed Scan
-docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 ot/trivy:0.1
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 ot/trivy:0.4-mi .
 ```
 
 ```
 # Successful Scan
-docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 -e SCAN_SEVERITY="CRITICAL" ot/trivy:0.1
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 -e SCAN_SEVERITY="CRITICAL" ot/trivy:0.4-mi .
 ```
 
 ### Filesystem Scan
@@ -44,12 +46,12 @@ Filesystem scan will scan a filesystem, this BP step can be used independently a
 
 ```
 # Successful Scan
-docker run -it --rm -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e SCANNER=FILESYSTEM ot/trivy:0.1
+docker run -it --rm -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e SCANNER=FILESYSTEM ot/trivy:0.4-mi .
 ```
 
 * Debugging
 ```
-docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e APPLICATION_NAME=<application_name> -e ORGANIZATION=<organization_name> -e SOURCE_KEY=<source_key> -e REPORT_FILE_PATH=<report_file_path> -e MI_SERVER_ADDRESS=<mi_server_address> -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 --entrypoint bash ot/trivy:0.1
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/src -e WORKSPACE=/ -e CODEBASE_DIR=src -e APPLICATION_NAME=<application_name> -e ORGANIZATION=<organization_name> -e SOURCE_KEY=<source_key> -e REPORT_FILE_PATH=<report_file_path> -e MI_SERVER_ADDRESS=<mi_server_address> -e IMAGE_NAME="ot/trivy" -e IMAGE_TAG=0.1 --entrypoint bash ot/trivy:0.4-mi .
 ```
 ## Reference 
 * [Docs](https://aquasecurity.github.io/trivy/v0.32/docs/)
