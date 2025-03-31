@@ -1,20 +1,35 @@
-FROM aquasec/trivy:0.32.1
+FROM aquasec/trivy:0.55.2
 
-RUN apk add --no-cache --upgrade bash
-RUN apk add jq
+# Install dependencies
+RUN apk --no-cache add \
+    bash jq gettext libintl curl python3 py3-pip py3-virtualenv
 
+# Create a virtual environment and install Python packages inside it
+RUN python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir tabulate
+
+# Set environment variables to use the virtual environment
+ENV PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /src
 COPY build.sh .
 COPY imageTrivyScanner.sh .
 COPY filesystemTrivyScanner.sh .
-COPY BP-BASE-SHELL-STEPS/functions.sh .
-COPY BP-BASE-SHELL-STEPS/log-functions.sh .
+COPY template2CSV.sh .
+ADD BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
+ADD BP-BASE-SHELL-STEPS/data /opt/buildpiper/data
 
+ENV APPLICATION_NAME ""
+ENV ORGANIZATION ""
+ENV SOURCE_KEY ""
+ENV REPORT_FILE_PATH null
+ENV MI_SERVER_ADDRESS ""
 ENV ACTIVITY_SUB_TASK_CODE BP-TRIVY-TASK
 ENV SLEEP_DURATION 5s
 ENV VALIDATION_FAILURE_ACTION WARNING
 ENV SCANNER "IMAGE"
 ENV SCAN_SEVERITY "HIGH,CRITICAL"
-ENV FORMAT_ARG "--format template --template @/contrib/html.tpl"
-ENV OUTPUT_ARG "-o trivy-report.html"
+ENV FORMAT_ARG "-f json"
+ENV OUTPUT_ARG "-o reports/trivy-results.json"
 
 ENTRYPOINT [ "./build.sh" ]

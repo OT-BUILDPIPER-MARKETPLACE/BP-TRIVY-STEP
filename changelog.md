@@ -1,0 +1,6 @@
+# Changelog for registry.buildpiper.in/okts/trivy-scan
+
+| Version       | Added                                                                                     | Improved                                                                                  | Bug Resolved                                                   | Date       |
+|---------------|-------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|----------------------------------------------------------------|------------|
+| 0.5.11-mi     | Python dependency added to execute a script for viewing data in CSV format.               | Pushes data for both `high` and `critical` severities. Default values for `SCANNER`, `SCAN_SEVERITY`, `FORMAT_ARG`, and `OUTPUT_ARG` are set in the Dockerfile. | `SOURCE_KEY` is no longer required, simplifying configuration. | March 31, 2025 |
+| 0.4-mi        | Initial image that pushes high vulnerability data to MI                                   |                                                                                           |                                                                | N/A        |
