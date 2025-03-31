@@ -7,7 +7,9 @@ A BP step to orchestrate trivy execution
 ```
 git submodule init
 git submodule update
-docker build -t ot/trivy:0.1 .
+cd BP-BASE-SHELL-STEPS
+git checkout v0.7
+docker build -t ot/trivy:0.4-mi .
 ```
 ## Testing
 This section will give you a walkthrough of how you can use this image to do various types of testing
