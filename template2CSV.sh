@@ -5,6 +5,6 @@ awk 'BEGIN { FS="[:,]"; OFS="," }
         header = (header ? header OFS : "") $i;
         value = (value ? value OFS : "") $(i+1);
     }
-    print header > "reports/mi.csv";
-    print value >> "reports/mi.csv";
+    print header > "reports/trivy_mi.csv";
+    print value >> "reports/trivy_mi.csv";
 }' reports/trivy-results.json

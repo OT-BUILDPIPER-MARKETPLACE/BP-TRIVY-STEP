@@ -66,6 +66,9 @@ else
 
     logInfoMessage "Trivy scan completed successfully!"
 
+    logInfoMessage "Updating reports in /bp/execution_dir/${GLOBAL_TASK_ID}......."
+    cp -rf reports/* /bp/execution_dir/${GLOBAL_TASK_ID}/
+
     logInfoMessage "Displaying Original Report: reports/trivy_mi.csv"
     echo "================================================================================"
     python3 /opt/buildpiper/shell-functions/print_table.py reports/trivy_mi.csv
