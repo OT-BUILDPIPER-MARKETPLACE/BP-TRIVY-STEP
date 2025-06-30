@@ -1,8 +1,13 @@
 FROM aquasec/trivy:0.55.2
 
+WORKDIR /home/buildpiper
+
 # Install dependencies
 RUN apk --no-cache add \
-    bash jq gettext libintl curl python3 py3-pip py3-virtualenv
+    bash jq gettext libintl curl python3 py3-pip py3-virtualenv && \
+    addgroup -g 1001 buildpiper && \
+    adduser -D -h /home/buildpiper -u 1001 -G buildpiper buildpiper && \
+    mkdir -p /home/buildpiper && chown -R buildpiper:buildpiper /home/buildpiper
 
 # Create a virtual environment and install Python packages inside it
 RUN python3 -m venv /opt/venv && \
@@ -11,7 +16,24 @@ RUN python3 -m venv /opt/venv && \
 # Set environment variables to use the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
 
-WORKDIR /src
+# Create necessary directories and assign permissions early
+RUN mkdir -p \
+    /src/reports \
+    /bp/data \
+    /bp/execution_dir \
+    /opt/buildpiper/shell-functions \
+    /opt/buildpiper/data \
+    /bp/workspace && \
+    chown -R buildpiper:buildpiper /src /bp /opt
+
+# Copy files with correct ownership
+COPY --chown=buildpiper:buildpiper build.sh /home/buildpiper/build.sh
+COPY --chown=buildpiper:buildpiper BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
+COPY --chown=buildpiper:buildpiper BP-BASE-SHELL-STEPS/data /opt/buildpiper/data/
+
+# Make the build script executable
+RUN chmod +x /home/buildpiper/build.sh
+
 COPY build.sh .
 COPY imageTrivyScanner.sh .
 COPY filesystemTrivyScanner.sh .
@@ -19,17 +41,30 @@ COPY template2CSV.sh .
 ADD BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
 ADD BP-BASE-SHELL-STEPS/data /opt/buildpiper/data
 
-ENV APPLICATION_NAME ""
-ENV ORGANIZATION ""
-ENV SOURCE_KEY ""
-ENV REPORT_FILE_PATH null
-ENV MI_SERVER_ADDRESS ""
-ENV ACTIVITY_SUB_TASK_CODE BP-TRIVY-TASK
-ENV SLEEP_DURATION 5s
-ENV VALIDATION_FAILURE_ACTION WARNING
-ENV SCANNER "IMAGE"
-ENV SCAN_SEVERITY "HIGH,CRITICAL"
-ENV FORMAT_ARG "-f json"
-ENV OUTPUT_ARG "-o reports/trivy-results.json"
+# Application and organization info
+ENV APPLICATION_NAME="" \
+    ORGANIZATION="" \
+    SOURCE_KEY="" \
+    REPORT_FILE_PATH="null" \
+    MI_SERVER_ADDRESS=""
+
+# Task and execution configuration
+ENV ACTIVITY_SUB_TASK_CODE="BP-TRIVY-TASK" \
+    SLEEP_DURATION="5s" \
+    VALIDATION_FAILURE_ACTION="WARNING"
+
+# Scanner configuration
+ENV SCANNER="IMAGE" \
+    SCAN_SEVERITY="HIGH,CRITICAL" \
+    FORMAT_ARG="-f json" \
+    OUTPUT_ARG="-o reports/trivy-results.json"
+
+
+RUN chown -R buildpiper:buildpiper /bp/workspace && \
+    mkdir -p /home/buildpiper/reports && \
+    chown -R buildpiper:buildpiper /home/buildpiper
+
+# Switch to non-root user
+USER buildpiper
 
 ENTRYPOINT [ "./build.sh" ]

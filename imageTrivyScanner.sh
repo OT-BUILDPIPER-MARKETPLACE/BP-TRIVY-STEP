@@ -6,7 +6,7 @@ source /opt/buildpiper/shell-functions/log-functions.sh
 source /opt/buildpiper/shell-functions/str-functions.sh
 source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
-source /opt/buildpiper/shell-functions/getDataFile.sh
+#source /opt/buildpiper/shell-functions/getDataFile.sh
 
 export application=$APPLICATION_NAME
 export environment=$(getProjectEnv)
@@ -20,12 +20,19 @@ cd ${WORKSPACE}/${CODEBASE_DIR}
 mkdir -p reports
 
 STATUS=0
+# if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
+#     logInfoMessage "Image name/tag is not provided in env variable $IMAGE_NAME checking it in BP data"
+#     IMAGE_NAME=$(getImageName)
+#     IMAGE_TAG=$(getImageTag)
+#     logInfoMessage "Image Name -> ${IMAGE_NAME}"
+#     logInfoMessage "Image Tag -> ${IMAGE_TAG}"
+# fi
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
-    logInfoMessage "Image name/tag is not provided in env variable $IMAGE_NAME checking it in BP data"
-    IMAGE_NAME=$(getImageName)
-    IMAGE_TAG=$(getImageTag)
-    logInfoMessage "Image Name -> ${IMAGE_NAME}"
-    logInfoMessage "Image Tag -> ${IMAGE_TAG}"
+    logErrorMessage "IMAGE_NAME or IMAGE_TAG is not provided. Please set both environment variables."
+    STATUS=1
+else
+    logInfoMessage "Using Image Name -> ${IMAGE_NAME}"
+    logInfoMessage "Using Image Tag  -> ${IMAGE_TAG}"
 fi
 
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then

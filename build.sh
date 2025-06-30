@@ -8,6 +8,10 @@ source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
 source /opt/buildpiper/shell-functions/getDataFile.sh
 
+git config --global --add safe.directory "$(pwd)"
+
+CODEBASE_LOCATION="${WORKSPACE}/${CODEBASE_DIR}"
+
 logInfoMessage "I'll do the scanning for $SCANNER"
 logInfoMessage "I'll generate report at [${WORKSPACE}/${CODEBASE_DIR}]"
 
