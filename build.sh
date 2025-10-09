@@ -20,9 +20,23 @@ case ${SCANNER} in
   IMAGE)
     ./imageTrivyScanner.sh
     ;;
+
   FILESYSTEM)
     ./filesystemTrivyScanner.sh
     ;;
+
+  SBOM_GEN_IMAGE)
+    ./sbom-image-generate.sh
+    ;;
+
+  SBOM_GEN_FS)
+    ./sbom-fs-generate.sh
+    ;;
+
+  SBOM_SCAN)
+    ./trivy-sbom-scan.sh
+    ;;
+
   *)
     logWarningMessage "Please check incompatible scanner passed!!!"
     generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Please check incompatible scanner passed!!!"

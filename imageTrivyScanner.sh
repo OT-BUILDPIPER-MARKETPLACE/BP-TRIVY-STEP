@@ -17,7 +17,11 @@ export report_file_path=$REPORT_FILE_PATH
 
 cd ${WORKSPACE}/${CODEBASE_DIR}
 
-mkdir -p reports
+if [ -d "reports" ]; then
+    true
+else
+    mkdir reports 
+fi
 
 STATUS=0
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
@@ -43,7 +47,6 @@ else
     sleep $SLEEP_DURATION
     logInfoMessage "Executing Trivy scan command..."
     
-    mkdir -p reports
 
     # Running Trivy scan and generating reports
     logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
@@ -51,23 +54,7 @@ else
     trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}
 
     logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
-    mkdir -p reports
     trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}
-
-    logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 --format template --template '{{- $critical := 0 }}{{- $high := 0 }}{{- range . }}{{- range .Vulnerabilities }}{{- if  eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}{{- if  eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}{{- end }}{{- end }}Critical: {{ $critical }}, High: {{ $high }}' ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
-
-    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 --format template --template '{{- $critical := 0 }}{{- $high := 0 }}{{- range . }}{{- range .Vulnerabilities }}{{- if  eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}{{- if  eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}{{- end }}{{- end }}Critical: {{ $critical }}, High: {{ $high }}' ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}
-
-    awk 'BEGIN { FS="[:,]"; OFS="," }
-    {
-        for (i = 1; i <= NF; i += 2) {
-            gsub(/ /, "", $i); # Remove spaces from keys
-            header = (header ? header OFS : "") $i;
-            value = (value ? value OFS : "") $(i+1);
-        }
-        print header > "reports/trivy_mi.csv";
-        print value >> "reports/trivy_mi.csv";
-    }' reports/trivy-results.json
 
     STATUS=$?
 
@@ -83,6 +70,21 @@ if [[ -n "${MI_SERVER:-}" ]]; then
     echo "================================================================================"
     python3 /opt/buildpiper/shell-functions/print_table.py reports/trivy_mi.csv
     echo "================================================================================"
+
+    logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 --format template --template '{{- $critical := 0 }}{{- $high := 0 }}{{- range . }}{{- range .Vulnerabilities }}{{- if  eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}{{- if  eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}{{- end }}{{- end }}Critical: {{ $critical }}, High: {{ $high }}' ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
+
+    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 --format template --template '{{- $critical := 0 }}{{- $high := 0 }}{{- range . }}{{- range .Vulnerabilities }}{{- if  eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}{{- if  eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}{{- end }}{{- end }}Critical: {{ $critical }}, High: {{ $high }}' ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}
+
+    awk 'BEGIN { FS="[:,]"; OFS="," }
+    {
+        for (i = 1; i <= NF; i += 2) {
+            gsub(/ /, "", $i); # Remove spaces from keys
+            header = (header ? header OFS : "") $i;
+            value = (value ? value OFS : "") $(i+1);
+        }
+        print header > "reports/trivy_mi.csv";
+        print value >> "reports/trivy_mi.csv";
+    }' reports/trivy-results.json
 
     export base64EncodedResponse=$(encodeFileContent reports/trivy_mi.csv)
 

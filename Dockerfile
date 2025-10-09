@@ -38,6 +38,8 @@ COPY build.sh .
 COPY imageTrivyScanner.sh .
 COPY filesystemTrivyScanner.sh .
 COPY template2CSV.sh .
+COPY sbom-image-generate.sh .
+COPY trivy-sbom-scan.sh .
 ADD BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
 ADD BP-BASE-SHELL-STEPS/data /opt/buildpiper/data
 
@@ -53,11 +55,17 @@ ENV ACTIVITY_SUB_TASK_CODE="BP-TRIVY-TASK" \
     SLEEP_DURATION="5s" \
     VALIDATION_FAILURE_ACTION="WARNING"
 
-# Scanner configuration
-ENV SCANNER="IMAGE" \
+# Scanner configuration  SCANNER = #IMAGE, FILESYSTEM, SBOM_GEN_IMAGE, SBOM_GEN_FS, SBOM_SCAN
+#SBOM_REPORT_NAME=sbom.cdx.json
+#SBOM_FORMAT_ARG=cyclonedx
+#FORMAT_ARG="--format template --template @/contrib/html.tpl"
+#OUTPUT_ARG="-o reports/trivy-results.json"
+
+ENV SCANNER="IMAGE" \                         
     SCAN_SEVERITY="HIGH,CRITICAL" \
-    FORMAT_ARG="-f json" \
+    FORMAT_ARG="--format template --template @/contrib/html.tpl" \
     OUTPUT_ARG="-o reports/trivy-results.json"
+
 
 
 RUN chown -R buildpiper:buildpiper /bp/workspace && \
