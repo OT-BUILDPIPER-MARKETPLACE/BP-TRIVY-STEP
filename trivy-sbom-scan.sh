@@ -35,22 +35,22 @@ else
     logInfoMessage "I'll scan the SBOM reports/${SBOM_REPORT_NAME} for image ${IMAGE_NAME}:${IMAGE_TAG}"
     sleep  $SLEEP_DURATION
     logInfoMessage "Executing command"
-    logInfoMessage "trivy sbom -s ${SCAN_SEVERITY} -f json --output reports/sbom_scan_result.json reports/${SBOM_REPORT_NAME}"
+    logInfoMessage "trivy sbom -s ${SCAN_SEVERITY} -f $FORMAT_ARG $OUTPUT_ARG reports/${SBOM_REPORT_NAME}"
     # trivy sbom -s ${SCAN_SEVERITY} -o reports/${SBOM_REPORT_NAME} -f ${FORMAT_ARG} --exit-code 1 reports/${SBOM_REPORT_NAME}
-    trivy sbom -s ${SCAN_SEVERITY} -f json --output reports/sbom_scan_result.json reports/${SBOM_REPORT_NAME}
+    trivy sbom -s ${SCAN_SEVERITY} $FORMAT_ARG $OUTPUT_ARG reports/${SBOM_REPORT_NAME}
     STATUS=`echo $?`
 fi
 
 if [ $STATUS -eq 0 ]
 then
   logInfoMessage "Congratulations Trivy SBOM scan succeeded!!!"
-  cat reports/sbom_scan_result.json
+  cat reports/$SBOM_OUTPUT
   generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Congratulations Trivy SBOM scan succeeded!!!"
 
 elif [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
   then
     logErrorMessage "Please check Trivy SBOM scan failed!!!"
-    cat reports/sbom_scan_result.json
+    cat reports/$SBOM_OUTPUT
     generateOutput ${ACTIVITY_SUB_TASK_CODE} false "Please check Trivy SBOM scan failed!!!"
     exit 1
    else

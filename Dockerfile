@@ -40,6 +40,7 @@ COPY filesystemTrivyScanner.sh .
 COPY template2CSV.sh .
 COPY sbom-image-generate.sh .
 COPY trivy-sbom-scan.sh .
+COPY sbom-fs-generate.sh .
 ADD BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
 ADD BP-BASE-SHELL-STEPS/data /opt/buildpiper/data
 
@@ -58,8 +59,9 @@ ENV ACTIVITY_SUB_TASK_CODE="BP-TRIVY-TASK" \
 # Scanner configuration  SCANNER = #IMAGE, FILESYSTEM, SBOM_GEN_IMAGE, SBOM_GEN_FS, SBOM_SCAN
 #SBOM_REPORT_NAME=sbom.cdx.json
 #SBOM_FORMAT_ARG=cyclonedx
-#FORMAT_ARG="--format template --template @/contrib/html.tpl"
-#OUTPUT_ARG="-o reports/trivy-results.json"
+#FORMAT_ARG="--format template --template @/contrib/html.tpl, "
+#OUTPUT_ARG="-o reports/trivy-results.json, -o reports/filename"
+
 
 ENV SCANNER="IMAGE" \                         
     SCAN_SEVERITY="HIGH,CRITICAL" \
