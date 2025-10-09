@@ -6,7 +6,7 @@ source /opt/buildpiper/shell-functions/log-functions.sh
 source /opt/buildpiper/shell-functions/str-functions.sh
 source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
-#source /opt/buildpiper/shell-functions/getDataFile.sh
+source /opt/buildpiper/shell-functions/getDataFile.sh
 
 export application=$APPLICATION_NAME
 export environment=$(getProjectEnv)
@@ -20,20 +20,20 @@ cd ${WORKSPACE}/${CODEBASE_DIR}
 mkdir -p reports
 
 STATUS=0
-# if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
-#     logInfoMessage "Image name/tag is not provided in env variable $IMAGE_NAME checking it in BP data"
-#     IMAGE_NAME=$(getImageName)
-#     IMAGE_TAG=$(getImageTag)
-#     logInfoMessage "Image Name -> ${IMAGE_NAME}"
-#     logInfoMessage "Image Tag -> ${IMAGE_TAG}"
-# fi
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
-    logErrorMessage "IMAGE_NAME or IMAGE_TAG is not provided. Please set both environment variables."
-    STATUS=1
-else
-    logInfoMessage "Using Image Name -> ${IMAGE_NAME}"
-    logInfoMessage "Using Image Tag  -> ${IMAGE_TAG}"
+    logInfoMessage "Image name/tag is not provided in env variable $IMAGE_NAME checking it in BP data"
+    IMAGE_NAME=$(getImageName)
+    IMAGE_TAG=$(getImageTag)
+    logInfoMessage "Image Name -> ${IMAGE_NAME}"
+    logInfoMessage "Image Tag -> ${IMAGE_TAG}"
 fi
+# if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
+#     logErrorMessage "IMAGE_NAME or IMAGE_TAG is not provided. Please set both environment variables."
+#     STATUS=1
+# else
+#     logInfoMessage "Using Image Name -> ${IMAGE_NAME}"
+#     logInfoMessage "Using Image Tag  -> ${IMAGE_TAG}"
+# fi
 
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     logErrorMessage "Image name/tag is not available in BP data as well. Please check!"
@@ -75,13 +75,16 @@ else
 
     logInfoMessage "Updating reports in /bp/execution_dir/${GLOBAL_TASK_ID}......."
     cp -rf reports/* /bp/execution_dir/${GLOBAL_TASK_ID}/
+fi
+if [[ -n "${MI_SERVER:-}" ]]; then
+    logInfoMessage "MI_SERVER is set to ${MI_SERVER}. Starting MI data send process..."
 
     logInfoMessage "Displaying Original Report: reports/trivy_mi.csv"
     echo "================================================================================"
     python3 /opt/buildpiper/shell-functions/print_table.py reports/trivy_mi.csv
     echo "================================================================================"
 
-    export base64EncodedResponse=`encodeFileContent reports/trivy_mi.csv`
+    export base64EncodedResponse=$(encodeFileContent reports/trivy_mi.csv)
 
     # Sending MI data
     export metrics=("trivy_critical" "trivy_high")
@@ -97,7 +100,7 @@ else
         logWarningMessage "Loading encoded data trivy.mi..."
         cat trivy.mi
 
-        if ! sendMIData trivy.mi ${MI_SERVER_ADDRESS}; then
+        if ! sendMIData trivy.mi "${MI_SERVER}"; then
             logErrorMessage "Failed to push data for ${metric} to MI server"
             MI_SEND_STATUS=1
         else
@@ -110,6 +113,8 @@ else
     else
         logErrorMessage "Some metrics failed to send. Please check the MI server or JSON format."
     fi
+else
+    logWarningMessage "MI_SERVER variable not set. Skipping MI data send block."
 fi
 
 if [ $STATUS -eq 0 ]; then

@@ -5,8 +5,8 @@ WORKDIR /home/buildpiper
 # Install dependencies
 RUN apk --no-cache add \
     bash jq gettext libintl curl python3 py3-pip py3-virtualenv && \
-    addgroup -g 1001 buildpiper && \
-    adduser -D -h /home/buildpiper -u 1001 -G buildpiper buildpiper && \
+    addgroup -g 65522 buildpiper && \
+    adduser -D -h /home/buildpiper -u 65522 -G buildpiper buildpiper && \
     mkdir -p /home/buildpiper && chown -R buildpiper:buildpiper /home/buildpiper
 
 # Create a virtual environment and install Python packages inside it
