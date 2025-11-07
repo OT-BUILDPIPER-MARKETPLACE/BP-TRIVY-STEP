@@ -17,6 +17,8 @@ fi
 
 STATUS=0
 
+export OUTPUT_ARG="${SCANNER}_trivy-results.json"
+
 logInfoMessage "I'll scan Filesystem ${WORKSPACE}/${CODEBASE_DIR} for only ${SCAN_SEVERITY} severities"
 sleep  $SLEEP_DURATION
 logInfoMessage "Executing command"

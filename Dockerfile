@@ -3,7 +3,7 @@ FROM aquasec/trivy:0.55.2
 RUN addgroup -g 65522 buildpiper && \
     adduser -u 65522 -G buildpiper -D -h /home/buildpiper buildpiper && \
     chown -R buildpiper:buildpiper /home/buildpiper
-    
+
 RUN mkdir -p \
     /src/reports \
     /bp/data \
@@ -52,6 +52,6 @@ ENV VALIDATION_FAILURE_ACTION WARNING
 ENV SCANNER "IMAGE"
 ENV SCAN_SEVERITY "HIGH,CRITICAL"
 ENV FORMAT_ARG "-f json"
-ENV OUTPUT_ARG "trivy-results.json"
+ENV OUTPUT_ARG "${SCANNER}_trivy-results.json"
 
 ENTRYPOINT [ "./build.sh" ]
