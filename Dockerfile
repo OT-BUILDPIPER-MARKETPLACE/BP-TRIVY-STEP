@@ -1,5 +1,25 @@
 FROM aquasec/trivy:0.55.2
 
+RUN addgroup -g 65522 buildpiper && \
+    adduser -u 65522 -G buildpiper -D -h /home/buildpiper buildpiper && \
+    chown -R buildpiper:buildpiper /home/buildpiper
+    
+RUN mkdir -p \
+    /src/reports \
+    /bp/data \
+    /bp/execution_dir \
+    /opt/buildpiper/shell-functions \
+    /opt/buildpiper/data \
+    /bp/workspace \
+    /usr/local/bin \
+    /var/lib/apt/lists \
+    /etc/timezone \
+    /opt/python_versions \
+    /opt/jdk \
+    /opt/maven \
+    /app/venv && \
+    chown -R buildpiper:buildpiper /src /bp /opt /usr /tmp /app
+
 # Install dependencies
 RUN apk --no-cache add \
     bash jq gettext libintl curl python3 py3-pip py3-virtualenv
@@ -12,12 +32,14 @@ RUN python3 -m venv /opt/venv && \
 ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /src
-COPY build.sh .
-COPY imageTrivyScanner.sh .
-COPY filesystemTrivyScanner.sh .
-COPY template2CSV.sh .
-ADD BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
-ADD BP-BASE-SHELL-STEPS/data /opt/buildpiper/data
+COPY --chown=buildpiper:buildpiper build.sh .
+COPY --chown=buildpiper:buildpiper imageTrivyScanner.sh .
+COPY --chown=buildpiper:buildpiper filesystemTrivyScanner.sh .
+COPY --chown=buildpiper:buildpiper template2CSV.sh .
+COPY --chown=buildpiper:buildpiper BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
+COPY --chown=buildpiper:buildpiper BP-BASE-SHELL-STEPS/data /opt/buildpiper/data
+
+USER buildpiper
 
 ENV APPLICATION_NAME ""
 ENV ORGANIZATION ""

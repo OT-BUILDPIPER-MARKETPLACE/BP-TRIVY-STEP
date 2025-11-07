@@ -69,12 +69,12 @@ else
     logInfoMessage "Updating reports in /bp/execution_dir/${GLOBAL_TASK_ID}......."
     cp -rf reports/* /bp/execution_dir/${GLOBAL_TASK_ID}/
 
-    logInfoMessage "Displaying Original Report: reports/trivy_mi.csv"
+    logInfoMessage "Displaying Original Report: ${WORKSPACE}/${CODEBASE_DIR}/reports/trivy_mi.csv"
     echo "================================================================================"
-    python3 /opt/buildpiper/shell-functions/print_table.py reports/trivy_mi.csv
+    python3 /opt/buildpiper/shell-functions/print_table.py ${WORKSPACE}/${CODEBASE_DIR}/reports/trivy_mi.csv
     echo "================================================================================"
 
-    export base64EncodedResponse=`encodeFileContent reports/trivy_mi.csv`
+    export base64EncodedResponse=`encodeFileContent ${WORKSPACE}/${CODEBASE_DIR}/reports/trivy_mi.csv`
 
     # Sending MI data
     export metrics=("trivy_critical" "trivy_high")
