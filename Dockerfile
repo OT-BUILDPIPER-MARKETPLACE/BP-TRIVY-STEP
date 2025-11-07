@@ -52,6 +52,6 @@ ENV VALIDATION_FAILURE_ACTION WARNING
 ENV SCANNER "IMAGE"
 ENV SCAN_SEVERITY "HIGH,CRITICAL"
 ENV FORMAT_ARG "-f json"
-ENV OUTPUT_ARG "-o reports/trivy-results.json"
+ENV OUTPUT_ARG "trivy-results.json"
 
 ENTRYPOINT [ "./build.sh" ]
