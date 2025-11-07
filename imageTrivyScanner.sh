@@ -21,8 +21,8 @@ mkdir -p reports
 
 STATUS=0
 
-export OUTPUT_ARG="-o ${SCANNER}_trivy-results.json"
-export FORMAT_ARG "-f json"
+export OUTPUT_ARG="-o reports/${SCANNER}_trivy-results.json"
+export FORMAT_ARG="-f json"
 
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     logInfoMessage "Image name/tag is not provided in env variable $IMAGE_NAME checking it in BP data"
@@ -64,7 +64,7 @@ else
         }
         print header > "reports/trivy_mi.csv";
         print value >> "reports/trivy_mi.csv";
-    }' reports/$OUTPUT_ARG
+    }' reports/${SCANNER}_trivy-results.json
 
     STATUS=$?
 
