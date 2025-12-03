@@ -27,7 +27,9 @@ RUN apk --no-cache add \
 # Create a virtual environment and install Python packages inside it
 RUN python3 -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir tabulate
-
+# Install dependencies
+RUN apk --no-cache add \
+    bash jq gettext libintl curl python3 py3-pip py3-virtualenv util-linux
 # Set environment variables to use the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
 
@@ -38,6 +40,7 @@ COPY --chown=buildpiper:buildpiper filesystemTrivyScanner.sh .
 COPY --chown=buildpiper:buildpiper template2CSV.sh .
 COPY --chown=buildpiper:buildpiper BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
 COPY --chown=buildpiper:buildpiper BP-BASE-SHELL-STEPS/data /opt/buildpiper/data
+COPY --chown=buildpiper:buildpiper BP-BASE-SHELL-STEPS/mi-functions.sh /opt/buildpiper/shell-functions/mi-functions.sh
 
 USER buildpiper
 

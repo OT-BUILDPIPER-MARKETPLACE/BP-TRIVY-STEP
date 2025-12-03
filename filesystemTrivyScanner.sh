@@ -1,7 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
+<<<<<<< HEAD
 # filesystemTrivyScanner.sh (Updated MI CSV with SCANNER name)
+=======
+# filesystemTrivyScanner.sh (Updated Minimal UI Report — Status removed)
+>>>>>>> fd8262b (trivy image and filescan non root step)
 
 source /opt/buildpiper/shell-functions/functions.sh
 source /opt/buildpiper/shell-functions/mi-functions.sh
@@ -19,12 +23,18 @@ STATUS=0
 export OUTPUT_ARG="${SCANNER}_trivy-results.json"
 TRIVY_JSON="reports/${OUTPUT_ARG}"
 SUMMARY_JSON="reports/trivy-summary.json"
+<<<<<<< HEAD
 
 # *** UPDATED: Add scanner name to prevent conflict with image scan ***
 MI_CSV="reports/trivy_mi_${SCANNER}.csv"
 
 HORIZONTAL_CSV="reports/trivy_filesystem.csv"
 
+=======
+MI_CSV="reports/trivy_mi.csv"
+HORIZONTAL_CSV="reports/trivy_filesystem.csv"
+
+>>>>>>> fd8262b (trivy image and filescan non root step)
 # Defaults
 SCAN_SEVERITY="${SCAN_SEVERITY:-HIGH,CRITICAL}"
 SLEEP_DURATION="${SLEEP_DURATION:-5s}"
@@ -63,7 +73,10 @@ EOF
 
 logInfoMessage "Generated summary report at ${SUMMARY_JSON}"
 
+<<<<<<< HEAD
 # *** UPDATED: MI report filename now includes scanner name ***
+=======
+>>>>>>> fd8262b (trivy image and filescan non root step)
 echo -e "Critical\tHigh" > "${MI_CSV}"
 echo -e "${CRITICAL}\t${HIGH}" >> "${MI_CSV}"
 logInfoMessage "Generated MI report at ${MI_CSV}"
@@ -105,6 +118,7 @@ else
 fi
 
 # Publish MI report
+<<<<<<< HEAD
 if command -v storeMIReport >/dev/null 2>&1; then
     storeMIReport "${SUMMARY_JSON}" || logWarningMessage "storeMIReport failed for ${SUMMARY_JSON}"
     storeMIReport "${MI_CSV}" || logWarningMessage "storeMIReport failed for ${MI_CSV}"
@@ -112,6 +126,15 @@ else
     logWarningMessage "storeMIReport not found, skipping report publish"
 fi
 
+=======
+# Publish MI report only if storeMIReport exists (silent if not available)
+if command -v storeMIReport >/dev/null 2>&1; then
+    storeMIReport "${SUMMARY_JSON}" || logWarningMessage "storeMIReport failed for ${SUMMARY_JSON}"
+    storeMIReport "${MI_CSV}" || logWarningMessage "storeMIReport failed for ${MI_CSV}"
+fi
+
+
+>>>>>>> fd8262b (trivy image and filescan non root step)
 logInfoMessage "Vulnerability counts -> CRITICAL=${CRITICAL}, HIGH=${HIGH}, MEDIUM=${MEDIUM}, LOW=${LOW}"
 
 if [ "${CRITICAL:-0}" -gt 0 ] || [ "${HIGH:-0}" -gt 0 ]; then
@@ -132,4 +155,7 @@ else
 fi
 
 exit 0
+<<<<<<< HEAD
 
+=======
+>>>>>>> fd8262b (trivy image and filescan non root step)
