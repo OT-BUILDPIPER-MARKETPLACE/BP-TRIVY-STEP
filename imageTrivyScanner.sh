@@ -39,6 +39,17 @@ fi
 #     logInfoMessage "Using Image Tag  -> ${IMAGE_TAG}"
 # fi
 
+if docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" >/dev/null 2>&1; then
+    logInfoMessage " Image found locally: ${IMAGE_NAME}:${IMAGE_TAG}"
+else
+    logWarningMessage "Image not found locally. Pulling ${IMAGE_NAME}:${IMAGE_TAG}"
+    docker pull "${IMAGE_NAME}:${IMAGE_TAG}"
+    if [[ $? -ne 0 ]]; then
+        logErrorMessage "Failed to pull image: ${IMAGE_NAME}:${IMAGE_TAG}"
+        exit 1
+    fi
+fi
+
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     logErrorMessage "Image name/tag is not available in BP data as well. Please check!"
     STATUS=1
@@ -48,6 +59,7 @@ else
     logInfoMessage "Executing Trivy scan command..."
     
     logInfoMessage "Target Image  : ${IMAGE_NAME}:${IMAGE_TAG}"
+
 
     # Running Trivy scan and generating reports
     logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
