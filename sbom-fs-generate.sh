@@ -29,16 +29,16 @@ STATUS=0
 logInfoMessage "I'll generate SBOM for filesystem path ${WORKSPACE}/${CODEBASE_DIR}"
 sleep $SLEEP_DURATION
 logInfoMessage "Executing command"
-logInfoMessage "trivy fs --format ${SBOM_FORMAT_ARG} --output reports/${SBOM_REPORT_NAME} ${WORKSPACE}/${CODEBASE_DIR}"
+logInfoMessage "trivy fs --format ${SBOM_FORMAT_ARG} --output reports/${SBOM_FS_REPORT_NAME} ${WORKSPACE}/${CODEBASE_DIR}"
 
-trivy fs --format ${SBOM_FORMAT_ARG} --output reports/${SBOM_REPORT_NAME} ${WORKSPACE}/${CODEBASE_DIR}
+trivy fs --format ${SBOM_FORMAT_ARG} --output reports/${SBOM_FS_REPORT_NAME} ${WORKSPACE}/${CODEBASE_DIR}
 STATUS=$?
 
 if [ $STATUS -eq 0 ]; then
-  logInfoMessage "Congratulations Trivy filesystem SBOM generation @ reports/${SBOM_REPORT_NAME} succeeded!!!"
+  logInfoMessage "Congratulations Trivy filesystem SBOM generation @ reports/${SBOM_FS_REPORT_NAME} succeeded!!!"
   ls -al reports/
-  cat reports/${SBOM_REPORT_NAME}
-  generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Congratulations Trivy SBOM generation @ reports/${SBOM_REPORT_NAME} succeeded!!!"
+  cat reports/${SBOM_FS_REPORT_NAME}
+  generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Congratulations Trivy SBOM generation @ reports/${SBOM_FS_REPORT_NAME} succeeded!!!"
 
 elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
     logErrorMessage "Please check Trivy SBOM generation failed!!!"

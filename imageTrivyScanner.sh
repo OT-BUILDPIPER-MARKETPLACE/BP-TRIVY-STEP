@@ -47,6 +47,7 @@ else
     sleep $SLEEP_DURATION
     logInfoMessage "Executing Trivy scan command..."
     
+    logInfoMessage "Target Image  : ${IMAGE_NAME}:${IMAGE_TAG}"
 
     # Running Trivy scan and generating reports
     logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
@@ -60,9 +61,53 @@ else
 
     logInfoMessage "Trivy scan completed successfully!"
 
-    logInfoMessage "Updating reports in /bp/execution_dir/${GLOBAL_TASK_ID}......."
+    JSON_REPORT=trivy-img-results
+
+    if [ -s "${JSON_REPORT}" ]; then
+        CRITICAL=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
+        HIGH=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="HIGH")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
+        MEDIUM=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="MEDIUM")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
+        LOW=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="LOW")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
+    else
+        CRITICAL=0; HIGH=0; MEDIUM=0; LOW=0
+    fi
+    logInfoMessage "Image vulnerabilities -> CRITICAL=${CRITICAL}, HIGH=${HIGH}, MEDIUM=${MEDIUM}, LOW=${LOW}"
+
     cp -rf reports/* /bp/execution_dir/${GLOBAL_TASK_ID}/
+    logInfoMessage "Updating reports in /bp/execution_dir/${GLOBAL_TASK_ID}......."
 fi
+
+
+HORIZONTAL_CSV="reports/trivy_image.csv"
+
+echo "Library,CVE_ID,Severity,InstalledVersion,FixedVersion,Title" > "${HORIZONTAL_CSV}"
+
+if [ -s "${JSON_REPORT}" ]; then
+    jq -r '
+      .Results[]? 
+      | select(.Vulnerabilities != null)
+      | .Vulnerabilities[]?
+      | [
+          (.PkgName // "N/A"),
+          (.VulnerabilityID // "N/A"),
+          (.Severity // "N/A"),
+          (.InstalledVersion // "N/A"),
+          (.FixedVersion // "N/A"),
+          (.Title // "N/A")
+        ] | @csv
+    ' "${JSON_REPORT}" >> "${HORIZONTAL_CSV}" || true
+fi
+
+logInfoMessage "Generated horizontal CVE CSV: ${HORIZONTAL_CSV}"
+
+if [ -n "${GLOBAL_TASK_ID}" ]; then
+    cp -rf reports/* "/bp/execution_dir/${GLOBAL_TASK_ID}/"
+    logInfoMessage "Copied reports to /bp/execution_dir/${GLOBAL_TASK_ID}/"
+else
+    logWarningMessage "GLOBAL_TASK_ID not set; skipping UI copy"
+fi
+
+
 if [[ -n "${MI_SERVER:-}" ]]; then
     logInfoMessage "MI_SERVER is set to ${MI_SERVER}. Starting MI data send process..."
 
