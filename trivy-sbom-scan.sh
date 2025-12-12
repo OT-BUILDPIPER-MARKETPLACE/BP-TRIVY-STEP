@@ -61,7 +61,9 @@ else
     #trivy sbom -s ${SCAN_SEVERITY} --exit-code 1 report/${SBOM_REPORT_NAME}
     logInfoMessage "trivy sbom --cache-dir ${TRIVY_CACHE_DIR} --skip-db-update --offline-scan --format ${SBOM_SCAN_FORMAT} --output ${JSON_OUTPUT_PATH} report/${SBOM_REPORT_NAME}"
     set +e
-    trivy sbom --cache-dir "${TRIVY_CACHE_DIR}" --skip-db-update --offline-scan --format "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "report/${SBOM_REPORT_NAME}"
+    #trivy sbom --cache-dir "${TRIVY_CACHE_DIR}" --skip-db-update --offline-scan --format "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "report/${SBOM_REPORT_NAME}"
+    trivy sbom -f "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "report/${SBOM_REPORT_NAME}"
+
     set -e
     STATUS=`echo $?`
 fi
