@@ -74,8 +74,9 @@ fi
 if [ $STATUS -eq 0 ]
 then
   logInfoMessage "Congratulations Trivy SBOM file generation @ reports/${SBOM_REPORT_NAME}  succeeded!!!"
-  ls -al reports/
-  cat reports/${SBOM_REPORT_NAME}
+  logInfoMessage "=============================== display 100 line of the sbom image report file ==================================="
+
+  cat reports/${SBOM_FS_REPORT_NAME} | head -n 100
   generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Congratulations Trivy SBOM generation @ reports/${SBOM_REPORT_NAME} succeeded!!!"
 
 elif [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
