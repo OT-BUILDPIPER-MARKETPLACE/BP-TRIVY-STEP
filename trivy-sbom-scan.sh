@@ -144,17 +144,20 @@ fi
 if [ $STATUS -eq 0 ]
 then
   logInfoMessage "Congratulations Trivy SBOM scan succeeded!!!"
-  cat report/${CSV_OUTPUT_PATH}
+  logInfoMessage "===================== Displaying first 50 lines of the SBOM scan report ====================="
+  cat reports/${CSV_OUTPUT_PATH} | head -n 50
   generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Congratulations Trivy SBOM scan succeeded!!!"
 
 elif [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
   then
     logErrorMessage "Please check Trivy SBOM scan failed!!!"
-    cat report/${CSV_OUTPUT_PATH}
+    logErrorMessage "===================== Displaying first 50 lines of the SBOM scan report ====================="
+    cat reports/${CSV_OUTPUT_PATH} | head -n 50
     generateOutput ${ACTIVITY_SUB_TASK_CODE} false "Please check Trivy SBOM scan failed!!!"
     exit 1
    else
     logWarningMessage "Please check Trivy SBOM scan failed!!!"
-    cat report/${CSV_OUTPUT_PATH}
+    logWarningMessage "===================== Displaying first 50 lines of the SBOM scan report ====================="
+    cat reports/${CSV_OUTPUT_PATH} | head -n 50
     generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Please check Trivy SBOM scan failed!!!"
 fi
