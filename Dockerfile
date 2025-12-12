@@ -75,6 +75,10 @@ ENV OUTPUT_FS_ARG="-o reports/trivy-fs-results.html" \
 ENV SBOM_REPORT_NAME="sbom.img.cdx.json" \
     SBOM_FORMAT_ARG="cyclonedx"
 
+ENV SBOM_SCAN_FORMAT="json" \
+    SBOM_SCAN_REPORT_NAME="sbom_scan_report.json" \
+    OUTPUT_CSV="sbom_scan_report.csv" \
+    TRIVY_CACHE_DIR="/home/buildpiper/.cache/trivy"
 
 
 RUN chown -R buildpiper:buildpiper /bp/workspace && \
@@ -85,3 +89,8 @@ RUN chown -R buildpiper:buildpiper /bp/workspace && \
 USER buildpiper
 
 ENTRYPOINT [ "./build.sh" ]
+
+
+
+
+    
