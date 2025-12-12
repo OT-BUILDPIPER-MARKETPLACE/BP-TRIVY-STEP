@@ -22,10 +22,10 @@ logInfoMessage "I'll generate report at [${WORKSPACE}/${CODEBASE_DIR}]"
 
 cd ${WORKSPACE}/${CODEBASE_DIR}
 
-if [ -d "report" ]; then
+if [ -d "reports" ]; then
     true
 else
-    mkdir report
+    mkdir reports
 fi
 
 STATUS=0
