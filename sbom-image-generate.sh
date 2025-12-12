@@ -13,9 +13,9 @@ if [ "$DEBUG" = true ]; then
 fi
 
 
-logInfoMessage "================================="
-logInfoMessage "start SBOM image generate step"
-logInfoMessage "================================="
+logInfoMessage "============================"
+logInfoMessage "Generate SBOM Image "
+logInfoMessage "============================"
 
 
 export application=$APPLICATION_NAME
@@ -46,7 +46,7 @@ fi
 
 
 if docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" >/dev/null 2>&1; then
-    logInfoMessage " Image found locally: ${IMAGE_NAME}:${IMAGE_TAG}"
+    logInfoMessage "Image found locally: ${IMAGE_NAME}:${IMAGE_TAG}"
 else
     logWarningMessage "Image not found locally. Pulling ${IMAGE_NAME}:${IMAGE_TAG}"
     docker pull "${IMAGE_NAME}:${IMAGE_TAG}"
@@ -74,9 +74,10 @@ fi
 if [ $STATUS -eq 0 ]
 then
   logInfoMessage "Congratulations Trivy SBOM file generation @ reports/${SBOM_REPORT_NAME}  succeeded!!!"
-  logInfoMessage "=============================== display 100 line of the sbom image report file ==================================="
+  logInfoMessage "===================== Displaying first 50 lines of the SBOM Image report ====================="
 
-  cat reports/${SBOM_FS_REPORT_NAME} | head -n 100
+  cat reports/${SBOM_FS_REPORT_NAME} | head -n 50
+
   generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Congratulations Trivy SBOM generation @ reports/${SBOM_REPORT_NAME} succeeded!!!"
 
 elif [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]

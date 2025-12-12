@@ -23,7 +23,7 @@ fi
 STATUS=0
 
 logInfoMessage "============================"
-logInfoMessage "start Filesystem scan"
+logInfoMessage "Start Filesystem scanning"
 logInfoMessage "============================"
 
 logInfoMessage "I'll scan Filesystem ${WORKSPACE}/${CODEBASE_DIR} for only ${SCAN_SEVERITY} severities"

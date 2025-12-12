@@ -15,7 +15,7 @@ fi
 
 
 logInfoMessage "============================"
-logInfoMessage "start Image trivy scan"
+logInfoMessage "Start Trivy Image scanning"
 logInfoMessage "============================"
 
 export application=$APPLICATION_NAME
@@ -46,7 +46,7 @@ if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
 fi
 
 if docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" >/dev/null 2>&1; then
-    logInfoMessage " Image found locally: ${IMAGE_NAME}:${IMAGE_TAG}"
+    logInfoMessage "Image found locally: ${IMAGE_NAME}:${IMAGE_TAG}"
 else
     logWarningMessage "Image not found locally. Pulling ${IMAGE_NAME}:${IMAGE_TAG}"
     docker pull "${IMAGE_NAME}:${IMAGE_TAG}"
@@ -91,20 +91,6 @@ if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
             logErrorMessage "Invalid REPORT_TYPE provided. Supported: json, html"
         fi
 fi
-
-    if [ -s "${JSON_REPORT}" ]; then
-        CRITICAL=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
-        HIGH=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="HIGH")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
-        MEDIUM=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="MEDIUM")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
-        LOW=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="LOW")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
-    else
-        CRITICAL=0; HIGH=0; MEDIUM=0; LOW=0
-    fi
-    logInfoMessage "Image vulnerabilities -> CRITICAL=${CRITICAL}, HIGH=${HIGH}, MEDIUM=${MEDIUM}, LOW=${LOW}"
-
-    cp -rf reports/* /bp/execution_dir/${GLOBAL_TASK_ID}/
-    logInfoMessage "Updating reports in /bp/execution_dir/${GLOBAL_TASK_ID}......."
-
 
 
 if [[ "${REPORT_TYPE}" == "json" || "${REPORT_TYPE}" == "both" ]]; then

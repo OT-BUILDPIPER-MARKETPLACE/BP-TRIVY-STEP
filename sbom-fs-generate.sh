@@ -14,7 +14,7 @@ fi
 
 
 logInfoMessage "============================"
-logInfoMessage "start SBOM fitesystem generate step"
+logInfoMessage "Generate SBOM Fitesystem "
 logInfoMessage "============================"
 
 
@@ -47,9 +47,9 @@ STATUS=$?
 if [ $STATUS -eq 0 ]; then
   logInfoMessage "Congratulations Trivy filesystem SBOM generation @ reports/${SBOM_FS_REPORT_NAME} succeeded!!!"
 
-  logInfoMessage "=============================== display 100 line of the sbom file report file ==================================="
+  logInfoMessage "===================== Displaying first 50 lines of the SBOM Filesystem report ====================="
 
-  cat reports/${SBOM_FS_REPORT_NAME} | head -n 100
+  cat reports/${SBOM_FS_REPORT_NAME} | head -n 50
   generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Congratulations Trivy SBOM generation @ reports/${SBOM_FS_REPORT_NAME} succeeded!!!"
 
 elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
