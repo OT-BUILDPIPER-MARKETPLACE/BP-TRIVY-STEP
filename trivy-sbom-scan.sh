@@ -15,6 +15,7 @@ logInfoMessage "================================="
 logInfoMessage "start SBOM image scan step"
 logInfoMessage "================================="
 
+JSON_OUTPUT_PATH="report/${SBOM_REPORT_NAME}"
 OUTPUT_CSV="${OUTPUT_CSV:-sbom_scan_report.csv}"
 
 logInfoMessage "I'll generate report at [${WORKSPACE}/${CODEBASE_DIR}]"
@@ -31,8 +32,10 @@ STATUS=0
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]
 then
     logInfoMessage "Image name/tag is not provided in env variable $IMAGE_NAME checking it in BP data"
-    IMAGE_NAME=`getComponentName`
-    IMAGE_TAG=`getRepositoryTag`
+    IMAGE_NAME=$(getImageName)
+    IMAGE_TAG=$(getImageTag)
+    logInfoMessage "Image Name -> ${IMAGE_NAME}"
+    logInfoMessage "Image Tag -> ${IMAGE_TAG}"
 fi
 
 if docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" >/dev/null 2>&1; then
@@ -59,52 +62,54 @@ else
     STATUS=`echo $?`
 fi
 
+ if [ -s "${JSON_OUTPUT_PATH}" ]; then
+    CSV_OUTPUT_PATH="report/${OUTPUT_CSV}"
+      if ! command -v jq >/dev/null 2>&1; then
+        logErrorMessage "jq is required but not installed."
+        exit 1
+      fi
+
+  jq -r '
+    def severityRank(s):
+      if s == "CRITICAL" then 5
+      elif s == "HIGH" then 4
+      elif s == "MEDIUM" then 3
+      elif s == "LOW" then 2
+      else 1 end;
+
+    def criticalityRank(c):
+      if c == "HIGH" or c == "high" then 3
+      elif c == "MEDIUM" or c == "medium" then 2
+      elif c == "LOW" or c == "low" then 1
+      else 0 end;
+
+    ["VulnerabilityID","PkgName","InstalledVersion","FixedVersion","Severity","Criticality","Title"],
+
+    (
+      ( .Results // [] | map(.Vulnerabilities // []) | add // [] )
+      | sort_by(
+          -severityRank(.Severity),
+          -criticalityRank(.Criticality)
+        )
+      | .[]
+      | [
+          .VulnerabilityID,
+          .PkgName,
+          .InstalledVersion,
+          .FixedVersion,
+          .Severity,
+          (.Criticality // ""),
+          (.Title // "" | gsub("[\n\r]"; " "))
+        ]
+    )
+    | @csv
+  ' "${JSON_OUTPUT_PATH}" > "${CSV_OUTPUT_PATH}" || true
 
 
-JSON_OUTPUT_PATH="report/${SBOM_REPORT_NAME}"
-CSV_OUTPUT_PATH="report/${OUTPUT_CSV}"
-
-
-if ! command -v jq >/dev/null 2>&1; then
-  logErrorMessage "jq is required but not installed."
-  exit 1
+    logInfoMessage "Generated sbom CSV: ${CSV_OUTPUT_PATH}"
+  else
+    logWarningMessage "No JSON report available, CSV created empty."
 fi
-
-jq -r '
-  def severityRank(s):
-    if s == "CRITICAL" then 5
-    elif s == "HIGH" then 4
-    elif s == "MEDIUM" then 3
-    elif s == "LOW" then 2
-    else 1 end;
-
-  def criticalityRank(c):
-    if c == "HIGH" or c == "high" then 3
-    elif c == "MEDIUM" or c == "medium" then 2
-    elif c == "LOW" or c == "low" then 1
-    else 0 end;
-
-  ["VulnerabilityID","PkgName","InstalledVersion","FixedVersion","Severity","Criticality","Title"],
-
-  (
-    ( .Results // [] | map(.Vulnerabilities // []) | add // [] )
-    | sort_by(
-        -severityRank(.Severity),
-        -criticalityRank(.Criticality)
-      )
-    | .[]
-    | [
-        .VulnerabilityID,
-        .PkgName,
-        .InstalledVersion,
-        .FixedVersion,
-        .Severity,
-        (.Criticality // ""),
-        (.Title // "" | gsub("[\n\r]"; " "))
-      ]
-  )
-  | @csv
-' "${JSON_OUTPUT_PATH}" > "${CSV_OUTPUT_PATH}" || true
 
 [[ -s "${JSON_OUTPUT_PATH}" ]] && \
   logInfoMessage "JSON vulnerability report created: ${JSON_OUTPUT_PATH}" || \
