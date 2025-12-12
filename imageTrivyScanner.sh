@@ -25,7 +25,6 @@ export organization=$ORGANIZATION
 export source_key=$SOURCE_KEY
 export report_file_path=$REPORT_FILE_PATH
 
-JSON_REPORT=trivy-img-results.json
 
 cd ${WORKSPACE}/${CODEBASE_DIR}
 
@@ -34,6 +33,8 @@ if [ -d "reports" ]; then
 else
     mkdir reports 
 fi
+
+sleep $SLEEP_DURATION
 
 STATUS=0
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
@@ -58,30 +59,38 @@ fi
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     logErrorMessage "Image name/tag is not available in BP data as well. Please check!"
     STATUS=1
-else
-    logInfoMessage "I'll scan image ${IMAGE_NAME}:${IMAGE_TAG} for only ${SCAN_SEVERITY} severities"
-    sleep $SLEEP_DURATION
-    logInfoMessage "Executing Trivy scan command..."
-    
-    logInfoMessage "Target Image  : ${IMAGE_NAME}:${IMAGE_TAG}"
+    else
+        logInfoMessage "I'll scan image ${IMAGE_NAME}:${IMAGE_TAG} for only ${SCAN_SEVERITY} severities"
+        logInfoMessage "Executing Trivy scan command..."
 
+        if [[ "${REPORT_TYPE}" == "json" || "${REPORT_TYPE}" == "both" ]]; then
+            
+                JSON_REPORT=trivy-img-results.json
+                logInfoMessage "Generating JSON report: ${JSON_REPORT}"
+                logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} --format json -o ${JSON_REPORT} ${IMAGE_NAME}:${IMAGE_TAG}"
+                trivy image -q --severity ${SCAN_SEVERITY} --format json -o "${JSON_REPORT}" "${IMAGE_NAME}:${IMAGE_TAG}" 
+                logInfoMessage "Generating JSON report at ${JSON_REPORT}"
 
-    # Running Trivy scan and generating reports
-    logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
+            elif [[ "${REPORT_TYPE}" == "html"  || "${REPORT_TYPE}" == "both" ]]; then
 
-    trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}
+                logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}"
 
-    logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
-    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}
+                trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}
 
-    logInfoMessage "Generating JSON report at ${JSON_REPORT}"
+                logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
 
-    trivy image -q --severity ${SCAN_SEVERITY} --format json -o "${JSON_REPORT}" "${IMAGE_NAME}:${IMAGE_TAG}" 
+                trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}
 
-    STATUS=$?
+                STATUS=$?
 
-    logInfoMessage "Trivy scan completed successfully!"
+                logWarningMessage "=============================================================="
+                logInfoMessage  "CSV report is not generated when HTML report type is selected."
+                logWarningMessage "=============================================================="
 
+            else
+            logErrorMessage "Invalid REPORT_TYPE provided. Supported: json, html"
+        fi
+fi
 
     if [ -s "${JSON_REPORT}" ]; then
         CRITICAL=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
@@ -95,31 +104,47 @@ else
 
     cp -rf reports/* /bp/execution_dir/${GLOBAL_TASK_ID}/
     logInfoMessage "Updating reports in /bp/execution_dir/${GLOBAL_TASK_ID}......."
+
+
+
+if [[ "${REPORT_TYPE}" == "json" || "${REPORT_TYPE}" == "both" ]]; then
+
+    if [ -s "${JSON_REPORT}" ]; then
+            CRITICAL=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
+            HIGH=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="HIGH")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
+            MEDIUM=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="MEDIUM")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
+            LOW=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="LOW")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
+        else
+         CRITICAL=0; HIGH=0; MEDIUM=0; LOW=0
+    fi
+    logInfoMessage "Image vulnerabilities -> CRITICAL=${CRITICAL}, HIGH=${HIGH}, MEDIUM=${MEDIUM}, LOW=${LOW}"
+
+    HORIZONTAL_CSV="reports/trivy_image.csv"
+
+    echo "Library,CVE_ID,Severity,InstalledVersion,FixedVersion,Title" > "${HORIZONTAL_CSV}"
+
+    if [ -s "${JSON_REPORT}" ]; then
+        jq -r '
+        .Results[]? 
+        | select(.Vulnerabilities != null)
+        | .Vulnerabilities[]?
+        | [
+            (.PkgName // "N/A"),
+            (.VulnerabilityID // "N/A"),
+            (.Severity // "N/A"),
+            (.InstalledVersion // "N/A"),
+            (.FixedVersion // "N/A"),
+            (.Title // "N/A")
+            ] | @csv
+        ' "${JSON_REPORT}" >> "${HORIZONTAL_CSV}" || true
+        
+            logInfoMessage "Generated horizontal CVE CSV: ${HORIZONTAL_CSV}"
+        else
+            logWarningMessage "No JSON report available; horizontal CSV created empty."
+    fi
+
 fi
 
-
-HORIZONTAL_CSV="reports/trivy_image.csv"
-
-echo "Library,CVE_ID,Severity,InstalledVersion,FixedVersion,Title" > "${HORIZONTAL_CSV}"
-
-if [ -s "${JSON_REPORT}" ]; then
-    jq -r '
-      .Results[]? 
-      | select(.Vulnerabilities != null)
-      | .Vulnerabilities[]?
-      | [
-          (.PkgName // "N/A"),
-          (.VulnerabilityID // "N/A"),
-          (.Severity // "N/A"),
-          (.InstalledVersion // "N/A"),
-          (.FixedVersion // "N/A"),
-          (.Title // "N/A")
-        ] | @csv
-    ' "${JSON_REPORT}" >> "${HORIZONTAL_CSV}" || true
-    
-fi
-
-logInfoMessage "Generated horizontal CVE CSV: ${HORIZONTAL_CSV}"
 
 if [ -n "${GLOBAL_TASK_ID}" ]; then
     cp -rf reports/* "/bp/execution_dir/${GLOBAL_TASK_ID}/"
