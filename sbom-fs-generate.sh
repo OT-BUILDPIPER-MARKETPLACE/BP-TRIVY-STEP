@@ -44,6 +44,14 @@ logInfoMessage "trivy fs --format ${SBOM_FORMAT_ARG} --output reports/${SBOM_FS_
 trivy fs --format ${SBOM_FORMAT_ARG} --output reports/${SBOM_FS_REPORT_NAME} ${WORKSPACE}/${CODEBASE_DIR}
 STATUS=$?
 
+
+if [ -n "${GLOBAL_TASK_ID}" ]; then
+    cp -rf reports/* "/bp/execution_dir/${GLOBAL_TASK_ID}/"
+    logInfoMessage "Copied reports to /bp/execution_dir/${GLOBAL_TASK_ID}/"
+else
+    logWarningMessage "GLOBAL_TASK_ID not set; skipping UI copy"
+fi
+
 if [ $STATUS -eq 0 ]; then
   logInfoMessage "Congratulations Trivy filesystem SBOM generation @ reports/${SBOM_FS_REPORT_NAME} succeeded!!!"
 
