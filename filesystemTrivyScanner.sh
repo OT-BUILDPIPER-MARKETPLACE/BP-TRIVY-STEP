@@ -32,13 +32,13 @@ logInfoMessage "Executing command"
 
 if [[ "${REPORT_TYPE}" == "json" || "${REPORT_TYPE}" == "both" ]]; then
 
-        JSON_REPORT="trivy-fs-results.json"
+        JSON_REPORT="reports/trivy-fs-results.json"
         logInfoMessage "Generating JSON report: ${JSON_REPORT}"
-        logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --format json -o reports/${JSON_REPORT} ${WORKSPACE}/${CODEBASE_DIR}"
+        logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --format json -o ${JSON_REPORT} ${WORKSPACE}/${CODEBASE_DIR}"
 
-        trivy fs -q --severity "${SCAN_SEVERITY}" --format json -o "reports/${JSON_REPORT}" "${WORKSPACE}/${CODEBASE_DIR}"
+        trivy fs -q --severity "${SCAN_SEVERITY}" --format json -o "${JSON_REPORT}" "${WORKSPACE}/${CODEBASE_DIR}"
 
-        logInfoMessage "Generating JSON report at reports/${JSON_REPORT}"
+        logInfoMessage "Generating JSON report at ${JSON_REPORT}"
         STATUS=$?
 
     elif [[ "${REPORT_TYPE}" == "html"  || "${REPORT_TYPE}" == "both" ]]; then
