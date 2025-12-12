@@ -12,7 +12,7 @@ fi
 
 
 logInfoMessage "================================="
-logInfoMessage "start SBOM image scan step"
+logInfoMessage "Start SBOM image scan step"
 logInfoMessage "================================="
 
 JSON_OUTPUT_PATH="reports/${SBOM_SCAN_REPORT_NAME}"
@@ -72,7 +72,7 @@ else
 fi
 
  if [ -s "${JSON_OUTPUT_PATH}" ]; then
-    CSV_OUTPUT_PATH="report/${OUTPUT_CSV}"
+    CSV_OUTPUT_PATH="reports/${OUTPUT_CSV}"
       if ! command -v jq >/dev/null 2>&1; then
         logErrorMessage "jq is required but not installed."
         exit 1
