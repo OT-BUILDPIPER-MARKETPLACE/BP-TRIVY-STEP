@@ -25,6 +25,8 @@ export organization=$ORGANIZATION
 export source_key=$SOURCE_KEY
 export report_file_path=$REPORT_FILE_PATH
 
+JSON_REPORT=trivy-img-results.json
+
 cd ${WORKSPACE}/${CODEBASE_DIR}
 
 if [ -d "reports" ]; then
@@ -41,13 +43,6 @@ if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     logInfoMessage "Image Name -> ${IMAGE_NAME}"
     logInfoMessage "Image Tag -> ${IMAGE_TAG}"
 fi
-# if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
-#     logErrorMessage "IMAGE_NAME or IMAGE_TAG is not provided. Please set both environment variables."
-#     STATUS=1
-# else
-#     logInfoMessage "Using Image Name -> ${IMAGE_NAME}"
-#     logInfoMessage "Using Image Tag  -> ${IMAGE_TAG}"
-# fi
 
 if docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" >/dev/null 2>&1; then
     logInfoMessage " Image found locally: ${IMAGE_NAME}:${IMAGE_TAG}"
@@ -79,11 +74,14 @@ else
     logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
     trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}
 
+    logInfoMessage "Generating JSON report at ${JSON_REPORT}"
+
+    trivy image -q --severity ${SCAN_SEVERITY} --format json -o "${JSON_REPORT}" "${IMAGE_NAME}:${IMAGE_TAG}" 
+
     STATUS=$?
 
     logInfoMessage "Trivy scan completed successfully!"
 
-    JSON_REPORT=trivy-img-results
 
     if [ -s "${JSON_REPORT}" ]; then
         CRITICAL=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
@@ -118,6 +116,7 @@ if [ -s "${JSON_REPORT}" ]; then
           (.Title // "N/A")
         ] | @csv
     ' "${JSON_REPORT}" >> "${HORIZONTAL_CSV}" || true
+    
 fi
 
 logInfoMessage "Generated horizontal CVE CSV: ${HORIZONTAL_CSV}"

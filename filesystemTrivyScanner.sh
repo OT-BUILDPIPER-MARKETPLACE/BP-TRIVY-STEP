@@ -37,13 +37,15 @@ STATUS=`echo $?`
 
 JSON_REPORT=trivy-fs-results.json
 
+trivy fs -q --severity "${SCAN_SEVERITY}" --format json -o "${JSON_REPORT}" "${WORKSPACE}/${CODEBASE_DIR}" || true
 
 
-if [ -s "${TRIVY_JSON}" ]; then
-    CRITICAL=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length) // 0' "${TRIVY_JSON}" 2>/dev/null || echo 0)
-    HIGH=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="HIGH")] | length) // 0' "${TRIVY_JSON}" 2>/dev/null || echo 0)
-    MEDIUM=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="MEDIUM")] | length) // 0' "${TRIVY_JSON}" 2>/dev/null || echo 0)
-    LOW=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="LOW")] | length) // 0' "${TRIVY_JSON}" 2>/dev/null || echo 0)
+
+if [ -s "${JSON_REPORT}" ]; then
+    CRITICAL=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length) // 0' "${JSON_REPORT}" 2>/dev/null || echo 0)
+    HIGH=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="HIGH")] | length) // 0' "${JSON_REPORT}" 2>/dev/null || echo 0)
+    MEDIUM=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="MEDIUM")] | length) // 0' "${JSON_REPORT}" 2>/dev/null || echo 0)
+    LOW=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="LOW")] | length) // 0' "${JSON_REPORT}" 2>/dev/null || echo 0)
 else
     CRITICAL=0; HIGH=0; MEDIUM=0; LOW=0
 fi
@@ -55,7 +57,7 @@ HORIZONTAL_CSV="reports/trivy_fs.csv"
 
 echo "Library,CVE_ID,Severity,InstalledVersion,FixedVersion,Title" > "${HORIZONTAL_CSV}"
 
-if [ -s "${TRIVY_JSON}" ]; then
+if [ -s "${JSON_REPORT}" ]; then
     jq -r '
       .Results[]? 
       | select(.Vulnerabilities != null) 
@@ -70,7 +72,7 @@ if [ -s "${TRIVY_JSON}" ]; then
           (.Title // "N/A")
         ]
         | @csv
-    ' "${TRIVY_JSON}" >> "${HORIZONTAL_CSV}" 2>/dev/null || true
+    ' "${JSON_REPORT}" >> "${HORIZONTAL_CSV}" 2>/dev/null || true
 
     logInfoMessage "Generated minimal horizontal CVE CSV (without status) at ${HORIZONTAL_CSV}"
 else
