@@ -59,12 +59,12 @@ else
     logInfoMessage "Executing command"
     logInfoMessage "trivy sbom -s ${SCAN_SEVERITY} -o report/${OUTPUT_ARG} -f ${FORMAT_ARG} --exit-code 1 reports/${SBOM_REPORT_NAME}"
 
-    trivy sbom --skip-db-update --offline-scan -f "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "reports/${SBOM_REPORT_NAME}"
+    #trivy sbom --skip-db-update --offline-scan -f "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "reports/${SBOM_REPORT_NAME}"
     #trivy sbom -s ${SCAN_SEVERITY} --exit-code 1 reports/${SBOM_REPORT_NAME}
     #logInfoMessage "trivy sbom --cache-dir ${TRIVY_CACHE_DIR} --skip-db-update --offline-scan --format ${SBOM_SCAN_FORMAT} --output ${JSON_OUTPUT_PATH} reports/${SBOM_REPORT_NAME}"
 
     #trivy sbom --cache-dir "${TRIVY_CACHE_DIR}" --skip-db-update --offline-scan --format "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "reports/${SBOM_REPORT_NAME}"
-    #trivy sbom -f "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "report/${SBOM_REPORT_NAME}"
+    trivy sbom -f "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "reports/${SBOM_REPORT_NAME}"
 
     STATUS=`echo $?`
 fi
