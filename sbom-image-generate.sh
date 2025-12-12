@@ -14,7 +14,7 @@ fi
 
 
 logInfoMessage "============================"
-logInfoMessage "Generate SBOM Image "
+logInfoMessage "Generating SBOM for Image"
 logInfoMessage "============================"
 
 

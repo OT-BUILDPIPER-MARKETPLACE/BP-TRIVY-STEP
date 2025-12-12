@@ -13,9 +13,9 @@ if [ "$DEBUG" = true ]; then
 fi
 
 
-logInfoMessage "============================"
-logInfoMessage "Generate SBOM Fitesystem "
-logInfoMessage "============================"
+logInfoMessage "==============================="
+logInfoMessage "Generating SBOM for filesystem"
+logInfoMessage "==============================="
 
 
 export application=$APPLICATION_NAME
