@@ -136,3 +136,4 @@ elif [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
     logWarningMessage "Please check Trivy SBOM scan failed!!!"
     cat report/${CSV_OUTPUT_PATH}
     generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Please check Trivy SBOM scan failed!!!"
+fi
