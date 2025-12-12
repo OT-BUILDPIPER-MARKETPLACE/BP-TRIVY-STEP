@@ -17,6 +17,10 @@ fi
 
 STATUS=0
 
+logInfoMessage "============================"
+logInfoMessage "start Filesystem scan"
+logInfoMessage "============================"
+
 logInfoMessage "I'll scan Filesystem ${WORKSPACE}/${CODEBASE_DIR} for only ${SCAN_SEVERITY} severities"
 sleep  $SLEEP_DURATION
 logInfoMessage "Executing command"
