@@ -71,9 +71,17 @@ else
     STATUS=`echo $?`
 fi
 
+
+if [ -n "${GLOBAL_TASK_ID}" ]; then
+    cp -rf reports/* "/bp/execution_dir/${GLOBAL_TASK_ID}/"
+    logInfoMessage "Copied reports to /bp/execution_dir/${GLOBAL_TASK_ID}/"
+else
+    logWarningMessage "GLOBAL_TASK_ID not set; skipping UI copy"
+fi
+
 if [ $STATUS -eq 0 ]
 then
-  logInfoMessage "Congratulations Trivy SBOM file generation @ reports/${SBOM_REPORT_NAME}  succeeded!!!"
+  logInfoMessage "Congratulations Trivy SBOM file generation reports/${SBOM_REPORT_NAME}  succeeded!!!"
   logInfoMessage "===================== Displaying first 50 lines of the SBOM Image report ====================="
 
   cat reports/${SBOM_FS_REPORT_NAME} | head -n 50
