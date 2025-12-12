@@ -10,6 +10,11 @@ if [ "$DEBUG" = true ]; then
   set -x
 fi
 
+
+logInfoMessage "================================="
+logInfoMessage "start SBOM image scan step"
+logInfoMessage "================================="
+
 OUTPUT_CSV="${OUTPUT_CSV:-sbom_scan_report.csv}"
 
 logInfoMessage "I'll generate report at [${WORKSPACE}/${CODEBASE_DIR}]"

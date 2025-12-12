@@ -8,6 +8,16 @@ source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
 source /opt/buildpiper/shell-functions/getDataFile.sh
 
+if [ "$DEBUG" = true ]; then
+  set -x
+fi
+
+
+logInfoMessage "================================="
+logInfoMessage "start SBOM image generate step"
+logInfoMessage "================================="
+
+
 export application=$APPLICATION_NAME
 export environment=$(getProjectEnv)
 export service=$(getServiceName)

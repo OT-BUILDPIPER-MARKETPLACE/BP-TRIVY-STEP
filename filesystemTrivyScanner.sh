@@ -7,6 +7,11 @@ source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
 source /opt/buildpiper/shell-functions/getDataFile.sh
 
+if [ "$DEBUG" = true ]; then
+  set -x
+fi
+
+
 cd ${WORKSPACE}/${CODEBASE_DIR}
 
 if [ -d "reports" ]; then
