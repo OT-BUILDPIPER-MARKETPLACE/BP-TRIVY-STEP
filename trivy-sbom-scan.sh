@@ -57,18 +57,18 @@ else
     logInfoMessage "I'll scan the SBOM report/${SBOM_REPORT_NAME} for image ${IMAGE_NAME}:${IMAGE_TAG}"
     sleep  $SLEEP_DURATION
     logInfoMessage "Executing command"
-    logInfoMessage "trivy sbom -s ${SCAN_SEVERITY} -o report/${OUTPUT_ARG} -f ${FORMAT_ARG} --exit-code 1 report/${SBOM_REPORT_NAME}"
+    logInfoMessage "trivy sbom -s ${SCAN_SEVERITY} -o report/${OUTPUT_ARG} -f ${FORMAT_ARG} --exit-code 1 reports/${SBOM_REPORT_NAME}"
 
-    trivy sbom --skip-db-update --offline-scan -f "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "report/${SBOM_REPORT_NAME}"
-    #trivy sbom -s ${SCAN_SEVERITY} --exit-code 1 report/${SBOM_REPORT_NAME}
-    #logInfoMessage "trivy sbom --cache-dir ${TRIVY_CACHE_DIR} --skip-db-update --offline-scan --format ${SBOM_SCAN_FORMAT} --output ${JSON_OUTPUT_PATH} report/${SBOM_REPORT_NAME}"
+    trivy sbom --skip-db-update --offline-scan -f "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "reports/${SBOM_REPORT_NAME}"
+    #trivy sbom -s ${SCAN_SEVERITY} --exit-code 1 reports/${SBOM_REPORT_NAME}
+    #logInfoMessage "trivy sbom --cache-dir ${TRIVY_CACHE_DIR} --skip-db-update --offline-scan --format ${SBOM_SCAN_FORMAT} --output ${JSON_OUTPUT_PATH} reports/${SBOM_REPORT_NAME}"
 
-    #trivy sbom --cache-dir "${TRIVY_CACHE_DIR}" --skip-db-update --offline-scan --format "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "report/${SBOM_REPORT_NAME}"
+    #trivy sbom --cache-dir "${TRIVY_CACHE_DIR}" --skip-db-update --offline-scan --format "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "reports/${SBOM_REPORT_NAME}"
     #trivy sbom -f "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "report/${SBOM_REPORT_NAME}"
 
     STATUS=`echo $?`
 fi
---format json
+
  if [ -s "${JSON_OUTPUT_PATH}" ]; then
     CSV_OUTPUT_PATH="report/${OUTPUT_CSV}"
       if ! command -v jq >/dev/null 2>&1; then
@@ -116,6 +116,13 @@ fi
     logInfoMessage "Generated sbom CSV: ${CSV_OUTPUT_PATH}"
   else
     logWarningMessage "No JSON report available, CSV created empty."
+fi
+
+if [ -n "${GLOBAL_TASK_ID}" ]; then
+    cp -rf reports/* "/bp/execution_dir/${GLOBAL_TASK_ID}/"
+    logInfoMessage "Copied reports to /bp/execution_dir/${GLOBAL_TASK_ID}/"
+else
+    logWarningMessage "GLOBAL_TASK_ID not set; skipping UI copy"
 fi
 
 [[ -s "${JSON_OUTPUT_PATH}" ]] && \
