@@ -2,12 +2,13 @@ FROM aquasec/trivy:0.55.2
 
 WORKDIR /home/buildpiper
 
-# Install dependencies
+
 RUN apk --no-cache add \
-    bash jq gettext libintl curl python3 py3-pip py3-virtualenv && \
+    bash jq gettext libintl curl python3 py3-pip py3-virtualenv docker-cli && \
     addgroup -g 65522 buildpiper && \
     adduser -D -h /home/buildpiper -u 65522 -G buildpiper buildpiper && \
-    mkdir -p /home/buildpiper && chown -R buildpiper:buildpiper /home/buildpiper
+    mkdir -p /home/buildpiper && \
+    chown -R buildpiper:buildpiper /home/buildpiper
 
 # Create a virtual environment and install Python packages inside it
 RUN python3 -m venv /opt/venv && \
