@@ -35,9 +35,9 @@ if [[ "${REPORT_TYPE}" == "json" || "${REPORT_TYPE}" == "both" ]]; then
         JSON_REPORT="trivy-fs-results.json"
         logInfoMessage "Generating JSON report: ${JSON_REPORT}"
         logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --format json -o ${JSON_REPORT} ${WORKSPACE}/${CODEBASE_DIR}"
-        set +e
+
         trivy fs -q --severity "${SCAN_SEVERITY}" --format json -o "${JSON_REPORT}" "${WORKSPACE}/${CODEBASE_DIR}"
-        set -e
+
         logInfoMessage "Generating JSON report at ${JSON_REPORT}"
         STATUS=$?
 
@@ -48,9 +48,9 @@ if [[ "${REPORT_TYPE}" == "json" || "${REPORT_TYPE}" == "both" ]]; then
         trivy fs -q --severity ${SCAN_SEVERITY} "${WORKSPACE}/${CODEBASE_DIR}"
 
         logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_FS_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
-        set +e
+
         trivy fs -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_FS_ARG} "${WORKSPACE}/${CODEBASE_DIR}"
-        set +e
+
         STATUS=$?
 
         logWarningMessage "=============================================================="

@@ -68,9 +68,8 @@ if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
                 JSON_REPORT=trivy-img-results.json
                 logInfoMessage "Generating JSON report: ${JSON_REPORT}"
                 logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} --format json -o ${JSON_REPORT} ${IMAGE_NAME}:${IMAGE_TAG}"
-                set +e
+
                 trivy image -q --severity ${SCAN_SEVERITY} --format json -o "${JSON_REPORT}" "${IMAGE_NAME}:${IMAGE_TAG}"
-                set -e 
                 logInfoMessage "Generating JSON report at ${JSON_REPORT}"
 
             elif [[ "${REPORT_TYPE}" == "html"  || "${REPORT_TYPE}" == "both" ]]; then
@@ -80,9 +79,9 @@ if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
                 trivy image -q --severity ${SCAN_SEVERITY} ${IMAGE_NAME}:${IMAGE_TAG}
 
                 logInfoMessage "trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
-                set +e
+
                 trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}
-                set -e
+
 
                 STATUS=$?
 
