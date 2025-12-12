@@ -65,11 +65,11 @@ if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
 
         if [[ "${REPORT_TYPE}" == "json" || "${REPORT_TYPE}" == "both" ]]; then
             
-                JSON_REPORT=trivy-img-results.json
+                JSON_REPORT=reports/trivy-img-results.json
                 logInfoMessage "Generating JSON report: ${JSON_REPORT}"
                 logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} --format json -o ${JSON_REPORT} ${IMAGE_NAME}:${IMAGE_TAG}"
 
-                trivy image -q --severity ${SCAN_SEVERITY} --format json -o "reports/${JSON_REPORT}" "${IMAGE_NAME}:${IMAGE_TAG}"
+                trivy image -q --severity ${SCAN_SEVERITY} --format json -o "${JSON_REPORT}" "${IMAGE_NAME}:${IMAGE_TAG}"
                 logInfoMessage "Generating JSON report at ${JSON_REPORT}"
 
             elif [[ "${REPORT_TYPE}" == "html"  || "${REPORT_TYPE}" == "both" ]]; then
