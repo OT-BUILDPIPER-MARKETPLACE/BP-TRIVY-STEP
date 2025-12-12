@@ -57,13 +57,6 @@ ENV ACTIVITY_SUB_TASK_CODE="BP-TRIVY-TASK" \
     SLEEP_DURATION="5s" \
     VALIDATION_FAILURE_ACTION="WARNING"
 
-# Scanner configuration  SCANNER = #IMAGE, FILESYSTEM, SBOM_GEN_IMAGE, SBOM_GEN_FS, SBOM_SCAN
-#SBOM_REPORT_NAME=sbom.cdx.json
-#SBOM_FORMAT_ARG=cyclonedx
-#FORMAT_ARG="--format template --template @/contrib/html.tpl, "
-#OUTPUT_ARG="-o reports/trivy-results.json, -o reports/filename"
-
-
 ENV SCANNER="IMAGE" \                         
     SCAN_SEVERITY="HIGH,CRITICAL" \
     FORMAT_ARG="--format template --template @/contrib/html.tpl" \
