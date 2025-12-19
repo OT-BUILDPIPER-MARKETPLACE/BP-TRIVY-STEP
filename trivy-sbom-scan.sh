@@ -36,6 +36,9 @@ then
     IMAGE_TAG=$(getImageTag)
     logInfoMessage "Image Name -> ${IMAGE_NAME}"
     logInfoMessage "Image Tag -> ${IMAGE_TAG}"
+    IMAGE_REGION=$(echo "$IMAGE_NAME" | awk -F'.' '{print $(NF-2)}')
+
+    logInfoMessage "Image Region -> ${IMAGE_REGION}"
 fi
 
 if docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" >/dev/null 2>&1; then

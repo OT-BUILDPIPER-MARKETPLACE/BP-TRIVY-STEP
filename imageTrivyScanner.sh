@@ -41,6 +41,9 @@ if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     logInfoMessage "Image name/tag is not provided in env variable $IMAGE_NAME checking it in BP data"
     IMAGE_NAME=$(getImageName)
     IMAGE_TAG=$(getImageTag)
+    IMAGE_REGION=$(echo "$IMAGE_NAME" | awk -F'.' '{print $(NF-2)}')
+
+    logInfoMessage "Image Region -> ${IMAGE_REGION}"
     logInfoMessage "Image Name -> ${IMAGE_NAME}"
     logInfoMessage "Image Tag -> ${IMAGE_TAG}"
 fi
