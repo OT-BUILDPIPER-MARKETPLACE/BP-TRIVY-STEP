@@ -15,7 +15,8 @@ RUN apk --no-cache add unzip && \
     unzip /tmp/awscliv2.zip -d /tmp && \
     /tmp/aws/install && \
     rm -rf /tmp/aws /tmp/awscliv2.zip
-
+    
+RUN apk --no-cache add aws-cli
 # Create a virtual environment and install Python packages inside it
 RUN python3 -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir tabulate
