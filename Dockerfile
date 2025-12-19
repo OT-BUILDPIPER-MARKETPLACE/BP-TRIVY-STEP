@@ -9,13 +9,7 @@ RUN apk --no-cache add \
     adduser -D -h /home/buildpiper -u 65522 -G buildpiper buildpiper && \
     mkdir -p /home/buildpiper && \
     chown -R buildpiper:buildpiper /home/buildpiper
-    
-RUN apk --no-cache add unzip && \
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip" && \
-    unzip /tmp/awscliv2.zip -d /tmp && \
-    /tmp/aws/install && \
-    rm -rf /tmp/aws /tmp/awscliv2.zip
-    
+
 RUN apk --no-cache add aws-cli
 # Create a virtual environment and install Python packages inside it
 RUN python3 -m venv /opt/venv && \
