@@ -48,7 +48,7 @@ PY
 ) || { logErrorMessage "Password decrypt failed for $NAME"; return 1; }
 
     logInfoMessage "Logging into registry: $NAME"
-    echo "[INFO] URL: $URL"
+    logInfoMessage "URL: $URL"
 
     echo "$PASSWORD" | docker login "$URL" \
       --username "$USERNAME" \
