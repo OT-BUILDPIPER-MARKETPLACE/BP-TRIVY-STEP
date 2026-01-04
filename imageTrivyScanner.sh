@@ -50,11 +50,12 @@ fi
 
 if docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" >/dev/null 2>&1; then
     logInfoMessage "Image found locally: ${IMAGE_NAME}:${IMAGE_TAG}"
-else
+else    
     logInfoMessage "Logging into configured registries"
     login_all_registries
     logWarningMessage "Image not found locally. Pulling ${IMAGE_NAME}:${IMAGE_TAG}"
     docker pull "${IMAGE_NAME}:${IMAGE_TAG}"
+    logInfoMessage "Image successful pull ${IMAGE_NAME}:${IMAGE_TAG}"
     if [[ $? -ne 0 ]]; then
         logErrorMessage "Failed to pull image: ${IMAGE_NAME}:${IMAGE_TAG}"
         exit 1
