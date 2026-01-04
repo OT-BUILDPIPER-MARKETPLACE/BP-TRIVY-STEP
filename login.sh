@@ -47,7 +47,7 @@ print(Fernet(os.environ["FERNET_KEY"].encode()).decrypt(b"$ENC_PASS").decode())
 PY
 ) || { logErrorMessage "Password decrypt failed for $NAME"; return 1; }
 
-    logInfoMessage "[INFO] Logging into registry: $NAME"
+    logInfoMessage "Logging into registry: $NAME"
     echo "[INFO] URL: $URL"
 
     echo "$PASSWORD" | docker login "$URL" \

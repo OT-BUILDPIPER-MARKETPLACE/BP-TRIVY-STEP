@@ -13,10 +13,16 @@ RUN apk --no-cache add \
 RUN apk --no-cache add aws-cli
 # Create a virtual environment and install Python packages inside it
 RUN python3 -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir tabulate
+    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /opt/venv/bin/pip install --no-cache-dir \
+        tabulate \
+        cryptography
 
 # Set environment variables to use the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
+
+ENV DOCKER_CONFIG=/tmp/.docker
+RUN mkdir -p /tmp/.docker && chmod 700 /tmp/.docker
 
 # Create necessary directories and assign permissions early
 RUN mkdir -p \
@@ -26,7 +32,7 @@ RUN mkdir -p \
     /opt/buildpiper/shell-functions \
     /opt/buildpiper/data \
     /bp/workspace && \
-    chown -R buildpiper:buildpiper /src /bp /opt
+    chown -R buildpiper:buildpiper /src /bp /opt /home/buildpiper/ /tmp/.docker
 
 # Copy files with correct ownership
 COPY --chown=buildpiper:buildpiper build.sh /home/buildpiper/build.sh
@@ -84,8 +90,3 @@ RUN chown -R buildpiper:buildpiper /bp/workspace && \
 USER buildpiper
 
 ENTRYPOINT [ "./build.sh" ]
-
-
-
-
-    
