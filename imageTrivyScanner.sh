@@ -7,7 +7,7 @@ source /opt/buildpiper/shell-functions/str-functions.sh
 source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
 source /opt/buildpiper/shell-functions/getDataFile.sh
-
+source ./login.sh
 
 if [ "$DEBUG" = true ]; then
   set -x
