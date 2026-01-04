@@ -87,7 +87,7 @@ then
   logInfoMessage "Congratulations Trivy SBOM file generation reports/${SBOM_REPORT_NAME}  succeeded!!!"
   logInfoMessage "===================== Displaying first 50 lines of the SBOM Image report ====================="
 
-  cat reports/${SBOM_FS_REPORT_NAME} | head -n 50
+  cat reports/${SBOM_REPORT_NAME} | head -n 50
 
   generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Congratulations Trivy SBOM generation @ reports/${SBOM_REPORT_NAME} succeeded!!!"
 
