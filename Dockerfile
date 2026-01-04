@@ -43,7 +43,7 @@ COPY template2CSV.sh .
 COPY sbom-image-generate.sh .
 COPY trivy-sbom-scan.sh .
 COPY sbom-fs-generate.sh .
-COPY loging.sh .
+COPY login.sh .
 ADD BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
 ADD BP-BASE-SHELL-STEPS/data /opt/buildpiper/data
 
