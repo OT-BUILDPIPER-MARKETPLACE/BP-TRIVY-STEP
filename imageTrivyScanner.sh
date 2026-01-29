@@ -151,10 +151,6 @@ fi
 if [[ -n "${MI_SERVER:-}" ]]; then
     logInfoMessage "MI_SERVER is set to ${MI_SERVER}. Starting MI data send process..."
 
-    logInfoMessage "Displaying Original Report: reports/trivy_mi.csv"
-    echo "================================================================================"
-    python3 /opt/buildpiper/shell-functions/print_table.py reports/trivy_mi.csv
-    echo "================================================================================"
 
     logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 --format template --template '{{- $critical := 0 }}{{- $high := 0 }}{{- range . }}{{- range .Vulnerabilities }}{{- if  eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}{{- if  eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}{{- end }}{{- end }}Critical: {{ $critical }}, High: {{ $high }}' ${OUTPUT_ARG} ${IMAGE_NAME}:${IMAGE_TAG}"
 
@@ -169,7 +165,14 @@ if [[ -n "${MI_SERVER:-}" ]]; then
         }
         print header > "reports/trivy_mi.csv";
         print value >> "reports/trivy_mi.csv";
-    }' reports/trivy-results.json
+    }' reports/trivy-img-results.json
+    
+    STATUS=$?
+
+    logInfoMessage "Displaying Original Report: reports/trivy_mi.csv"
+    echo "================================================================================"
+    python3 /opt/buildpiper/shell-functions/print_table.py reports/trivy_mi.csv
+    echo "================================================================================"
 
     export base64EncodedResponse=$(encodeFileContent reports/trivy_mi.csv)
 
