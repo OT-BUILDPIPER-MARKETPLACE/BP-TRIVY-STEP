@@ -36,20 +36,19 @@ RUN mkdir -p \
 
 # Copy files with correct ownership
 COPY --chown=buildpiper:buildpiper build.sh /home/buildpiper/build.sh
+COPY --chown=buildpiper:buildpiper login.sh /home/buildpiper/login.sh
+COPY --chown=buildpiper:buildpiper imageTrivyScanner.sh /home/buildpiper/imageTrivyScanner.sh
+COPY --chown=buildpiper:buildpiper filesystemTrivyScanner.sh /home/buildpiper/filesystemTrivyScanner.sh
+COPY --chown=buildpiper:buildpiper template2CSV.sh /home/buildpiper/template2CSV.sh
+COPY --chown=buildpiper:buildpiper sbom-image-generate.sh /home/buildpiper/sbom-image-generate.sh
+COPY --chown=buildpiper:buildpiper trivy-sbom-scan.sh /home/buildpiper/trivy-sbom-scan.sh
+COPY --chown=buildpiper:buildpiper sbom-fs-generate.sh /home/buildpiper/sbom-fs-generate.sh
 COPY --chown=buildpiper:buildpiper BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
 COPY --chown=buildpiper:buildpiper BP-BASE-SHELL-STEPS/data /opt/buildpiper/data/
 
 # Make the build script executable
-RUN chmod +x /home/buildpiper/build.sh
+RUN chmod +x /home/buildpiper/*.sh
 
-COPY build.sh .
-COPY imageTrivyScanner.sh .
-COPY filesystemTrivyScanner.sh .
-COPY template2CSV.sh .
-COPY sbom-image-generate.sh .
-COPY trivy-sbom-scan.sh .
-COPY sbom-fs-generate.sh .
-COPY login.sh .
 ADD BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
 ADD BP-BASE-SHELL-STEPS/data /opt/buildpiper/data
 
