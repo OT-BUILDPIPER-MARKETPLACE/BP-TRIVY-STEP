@@ -60,16 +60,16 @@ ENV APPLICATION_NAME="" \
     MI_SERVER_ADDRESS=""
 
 # Task and execution configuration
-ENV ACTIVITY_SUB_TASK_CODE="BP-TRIVY-TASK" \
+ENV ACTIVITY_SUB_TASK_CODE="trivy" \
     SLEEP_DURATION="5s" \
     VALIDATION_FAILURE_ACTION="WARNING"
 
 ENV SCANNER="IMAGE" \                         
     SCAN_SEVERITY="HIGH,CRITICAL" \
     FORMAT_ARG="--format template --template @/contrib/html.tpl" \
-    OUTPUT_ARG="-o reports/trivy-img-results.html"
+    OUTPUT_ARG="-o trivy-img-results.html"
 
-ENV OUTPUT_FS_ARG="-o reports/trivy-fs-results.html" \
+ENV OUTPUT_FS_ARG="-o trivy-fs-results.html" \
     SBOM_FS_REPORT_NAME="sbom.fs.cdx.json"
 
 ENV SBOM_REPORT_NAME="sbom.img.cdx.json" \
