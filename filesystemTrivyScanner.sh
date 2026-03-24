@@ -44,7 +44,7 @@ add_event() {
 ###############################################
 ### OUTPUT FILE
 ###############################################
-TRIVY_OUTPUT_FILE="${TRIVY_OUTPUT_FILE:-trivy_output.json}"
+TRIVY_OUTPUT_FILE="${TRIVY_OUTPUT_FILE:-${ACTIVITY_SUB_TASK_CODE}_output.json}"
 TRIVY_REPORT_CSV="${TRIVY_REPORT_CSV:-trivy.csv}"
 
 ###############################################

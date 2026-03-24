@@ -44,7 +44,7 @@ add_event() {
 ###############################################
 ### OUTPUT FILE
 ###############################################
-SBOM_OUTPUT_FILE="${SBOM_OUTPUT_FILE:-trivy_output.json}"
+SBOM_OUTPUT_FILE="${SBOM_OUTPUT_FILE:-${ACTIVITY_SUB_TASK_CODE}_output.json}"
 
 logInfoMessage "==============================="
 logInfoMessage "Generating SBOM for filesystem"

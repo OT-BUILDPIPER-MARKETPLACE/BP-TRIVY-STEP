@@ -45,7 +45,7 @@ add_event() {
 ###############################################
 ### OUTPUT FILE
 ###############################################
-TRIVY_OUTPUT_FILE="${TRIVY_OUTPUT_FILE:-trivy_output.json}"
+TRIVY_OUTPUT_FILE="${TRIVY_OUTPUT_FILE:-${ACTIVITY_SUB_TASK_CODE}_output.json}"
 TRIVY_REPORT_CSV="${TRIVY_REPORT_CSV:-trivy.csv}"
 
 ###############################################
@@ -90,8 +90,7 @@ STATUS=0
 ###############################################
 ### RESOLVE IMAGE NAME AND TAG
 ###############################################
-IMAGE_NAME="registry.buildpiper.in/okts/trivy-scan"
-IMAGE_TAG="0.5.13-mi"
+
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     logInfoMessage "Image name/tag is not provided in env variable $IMAGE_NAME checking it in BP data"
     IMAGE_NAME=$(getImageName)

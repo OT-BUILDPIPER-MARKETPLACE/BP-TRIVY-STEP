@@ -43,7 +43,7 @@ add_event() {
 ###############################################
 ### OUTPUT FILE
 ###############################################
-SBOM_SCAN_OUTPUT_FILE="${SBOM_SCAN_OUTPUT_FILE:-trivy_output.json}"
+SBOM_SCAN_OUTPUT_FILE="${SBOM_SCAN_OUTPUT_FILE:-${ACTIVITY_SUB_TASK_CODE}_output.json}"
 OUTPUT_CSV="${OUTPUT_CSV:-sbom_scan_report.csv}"
 
 logInfoMessage "================================="
