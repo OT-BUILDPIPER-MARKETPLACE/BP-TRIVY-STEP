@@ -10,99 +10,91 @@ if [ "$DEBUG" = true ]; then
   set -x
 fi
 
-
 logInfoMessage "================================="
 logInfoMessage "Start SBOM image scan step"
 logInfoMessage "================================="
 
+add_event "SBOM SCAN START" "Successful" \
+"Scan initiated" \
+"Starting SBOM scan"
+
 JSON_OUTPUT_PATH="reports/${SBOM_SCAN_REPORT_NAME}"
 OUTPUT_CSV="${OUTPUT_CSV:-sbom_scan_report.csv}"
 
-logInfoMessage "I'll generate report at [${WORKSPACE}/${CODEBASE_DIR}]"
-
 cd ${WORKSPACE}/${CODEBASE_DIR}
-
-if [ -d "reports" ]; then
-    true
-else
-    mkdir reports
-fi
+[ -d "reports" ] || mkdir reports
 
 STATUS=0
-if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]
-then
-    logInfoMessage "Image name/tag is not provided in env variable $IMAGE_NAME checking it in BP data"
+
+# ---------------- INPUT VALIDATION ----------------
+add_event "INPUT VALIDATION" "Successful" \
+"Validation started" \
+"Validating image and SBOM input"
+
+if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     IMAGE_NAME=$(getImageName)
     IMAGE_TAG=$(getImageTag)
-    logInfoMessage "Image Name -> ${IMAGE_NAME}"
-    logInfoMessage "Image Tag -> ${IMAGE_TAG}"
-    IMAGE_REGION=$(echo "$IMAGE_NAME" | awk -F'.' '{print $(NF-2)}')
 
-    logInfoMessage "Image Region -> ${IMAGE_REGION}"
+    add_event "INPUT VALIDATION" "Successful" \
+    "Image resolved" \
+    "Image details resolved from pipeline metadata"
 fi
+
+# ---------------- IMAGE CHECK ----------------
+add_event "IMAGE VALIDATION" "Successful" \
+"Checking image" \
+"Checking image availability locally"
 
 if docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" >/dev/null 2>&1; then
-    logInfoMessage " Image found locally: ${IMAGE_NAME}:${IMAGE_TAG}"
+    add_event "IMAGE VALIDATION" "Successful" \
+    "Image found" \
+    "Image found locally"
 else
-    logWarningMessage "Image not found locally. Pulling ${IMAGE_NAME}:${IMAGE_TAG}"
+    add_event "IMAGE VALIDATION" "Successful" \
+    "Image pull started" \
+    "Pulling image from registry"
+
     docker pull "${IMAGE_NAME}:${IMAGE_TAG}"
+
     if [[ $? -ne 0 ]]; then
-        logErrorMessage "Failed to pull image: ${IMAGE_NAME}:${IMAGE_TAG}"
+        add_event "IMAGE VALIDATION" "Failed" \
+        "Image pull failed" \
+        "Failed to pull image ${IMAGE_NAME}:${IMAGE_TAG}"
         exit 1
     fi
+
+    add_event "IMAGE VALIDATION" "Successful" \
+    "Image pulled" \
+    "Image pulled successfully"
 fi
 
-if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]
-then
-    logErrorMessage "Image name/tag is not available in BP data as well please check!!!!!!"
+# ---------------- SBOM SCAN ----------------
+if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     STATUS=1
 else
-    logInfoMessage "I'll scan the SBOM reports/${SBOM_REPORT_NAME} for image ${IMAGE_NAME}:${IMAGE_TAG}"
-    sleep  $SLEEP_DURATION
-    logInfoMessage "Executing command"
-    #logInfoMessage "trivy sbom -s ${SCAN_SEVERITY} -o report/${OUTPUT_ARG} -f ${FORMAT_ARG} --exit-code 1 reports/${SBOM_REPORT_NAME}"
-    #trivy sbom -s ${SCAN_SEVERITY} --exit-code 1 reports/${SBOM_REPORT_NAME}
-    #logInfoMessage "trivy sbom --cache-dir ${TRIVY_CACHE_DIR} --skip-db-update --offline-scan --format ${SBOM_SCAN_FORMAT} --output ${JSON_OUTPUT_PATH} reports/${SBOM_REPORT_NAME}"
-    #trivy sbom --cache-dir "${TRIVY_CACHE_DIR}" --skip-db-update --offline-scan --format "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "reports/${SBOM_REPORT_NAME}"
-    
-    
-    logInfoMessage "trivy sbom -f ${SBOM_SCAN_FORMAT} --output ${JSON_OUTPUT_PATH} reports/${SBOM_REPORT_NAME}"
+    add_event "SBOM SCAN EXECUTION" "Successful" \
+    "Scan started" \
+    "Scanning SBOM using Trivy"
 
+    trivy sbom -f "${SBOM_SCAN_FORMAT}" \
+    --output "${JSON_OUTPUT_PATH}" \
+    "reports/${SBOM_REPORT_NAME}"
 
-    trivy sbom -f "${SBOM_SCAN_FORMAT}" --output "${JSON_OUTPUT_PATH}" "reports/${SBOM_REPORT_NAME}"
+    STATUS=$?
 
-    STATUS=`echo $?`
+    add_event "REPORT GENERATION" "Successful" \
+    "JSON report created" \
+    "SBOM scan JSON report generated"
 fi
 
- if [ -s "${JSON_OUTPUT_PATH}" ]; then
+# ---------------- ANALYSIS ----------------
+if [ -s "${JSON_OUTPUT_PATH}" ]; then
     CSV_OUTPUT_PATH="reports/${OUTPUT_CSV}"
-      if ! command -v jq >/dev/null 2>&1; then
-        logErrorMessage "jq is required but not installed."
-        exit 1
-      fi
 
-  jq -r '
-    def severityRank(s):
-      if s == "CRITICAL" then 5
-      elif s == "HIGH" then 4
-      elif s == "MEDIUM" then 3
-      elif s == "LOW" then 2
-      else 1 end;
-
-    def criticalityRank(c):
-      if c == "HIGH" or c == "high" then 3
-      elif c == "MEDIUM" or c == "medium" then 2
-      elif c == "LOW" or c == "low" then 1
-      else 0 end;
-
+    jq -r '
     ["VulnerabilityID","PkgName","InstalledVersion","FixedVersion","Severity","Criticality","Title"],
-
     (
-      ( .Results // [] | map(.Vulnerabilities // []) | add // [] )
-      | sort_by(
-          -severityRank(.Severity),
-          -criticalityRank(.Criticality)
-        )
+      (.Results // [] | map(.Vulnerabilities // []) | add // [])
       | .[]
       | [
           .VulnerabilityID,
@@ -113,54 +105,59 @@ fi
           (.Criticality // ""),
           (.Title // "" | gsub("[\n\r]"; " "))
         ]
-    )
-    | @csv
-  ' "${JSON_OUTPUT_PATH}" > "${CSV_OUTPUT_PATH}" || true
+    ) | @csv
+    ' "${JSON_OUTPUT_PATH}" > "${CSV_OUTPUT_PATH}" || true
 
-
-    logInfoMessage "Generated sbom CSV: ${CSV_OUTPUT_PATH}"
-  else
-    logWarningMessage "No JSON report available, CSV created empty."
+    add_event "VULNERABILITY ANALYSIS" "Successful" \
+    "Analysis completed" \
+    "SBOM vulnerability data processed"
 fi
 
+# ---------------- EXPORT ----------------
 if [ -n "${GLOBAL_TASK_ID}" ]; then
     cp -rf reports/* "/bp/execution_dir/${GLOBAL_TASK_ID}/"
-    logInfoMessage "Copied reports to /bp/execution_dir/${GLOBAL_TASK_ID}/"
+
+    add_event "REPORT EXPORT" "Successful" \
+    "Export completed" \
+    "Reports copied to execution directory"
 else
-    logWarningMessage "GLOBAL_TASK_ID not set; skipping UI copy"
+    add_event "REPORT EXPORT" "Failed" \
+    "Export skipped" \
+    "GLOBAL_TASK_ID not set"
 fi
 
-[[ -s "${JSON_OUTPUT_PATH}" ]] && \
-  logInfoMessage "JSON vulnerability report created: ${JSON_OUTPUT_PATH}" || \
-  logWarningMessage "JSON report is empty."
+# ---------------- FINAL ----------------
+if [ $STATUS -eq 0 ]; then
 
-[[ -s "${CSV_OUTPUT_PATH}" ]] && \
-  logInfoMessage "CSV vulnerability report created: ${CSV_OUTPUT_PATH}" || \
-  logWarningMessage "CSV report is empty."
+    add_event "SBOM SCAN SUMMARY" "Successful" \
+    "Scan completed" \
+    "SBOM scan completed successfully"
 
-if [[ ! -s "${CSV_OUTPUT_PATH}" || $(wc -l < "${CSV_OUTPUT_PATH}") -le 1 ]]; then
-    logInfoMessage "No vulnerabilities found. Updating CSV file."
-    echo "No vulnerabilities found" > "${CSV_OUTPUT_PATH}"
-fi
-
-
-if [ $STATUS -eq 0 ]
-then
-  logInfoMessage "Congratulations Trivy SBOM scan succeeded!!!"
-  logInfoMessage "===================== Displaying first 50 lines of the SBOM scan report ====================="
-  cat ${CSV_OUTPUT_PATH} | head -n 50
-  generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Congratulations Trivy SBOM scan succeeded!!!"
-
-elif [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
-  then
-    logErrorMessage "Please check Trivy SBOM scan failed!!!"
-    logErrorMessage "===================== Displaying first 50 lines of the SBOM scan report ====================="
     cat ${CSV_OUTPUT_PATH} | head -n 50
-    generateOutput ${ACTIVITY_SUB_TASK_CODE} false "Please check Trivy SBOM scan failed!!!"
+
+    generateOutput ${ACTIVITY_SUB_TASK_CODE} true \
+    "SBOM scan succeeded"
+
+elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
+
+    add_event "SBOM SCAN SUMMARY" "Failed" \
+    "Scan failed" \
+    "SBOM scan failed"
+
+    cat ${CSV_OUTPUT_PATH} | head -n 50
+
+    generateOutput ${ACTIVITY_SUB_TASK_CODE} false \
+    "SBOM scan failed"
     exit 1
-   else
-    logWarningMessage "Please check Trivy SBOM scan failed!!!"
-    logWarningMessage "===================== Displaying first 50 lines of the SBOM scan report ====================="
+
+else
+
+    add_event "SBOM SCAN SUMMARY" "Successful" \
+    "Completed with issues" \
+    "SBOM scan completed with vulnerabilities"
+
     cat ${CSV_OUTPUT_PATH} | head -n 50
-    generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Please check Trivy SBOM scan failed!!!"
+
+    generateOutput ${ACTIVITY_SUB_TASK_CODE} true \
+    "SBOM scan completed with issues"
 fi

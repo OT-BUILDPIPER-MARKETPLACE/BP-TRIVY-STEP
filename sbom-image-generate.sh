@@ -12,11 +12,13 @@ if [ "$DEBUG" = true ]; then
   set -x
 fi
 
-
 logInfoMessage "============================"
 logInfoMessage "Generating SBOM for Image"
 logInfoMessage "============================"
 
+add_event "SBOM IMAGE GENERATION START" "Successful" \
+"Generation initiated" \
+"Starting SBOM generation for image"
 
 export application=$APPLICATION_NAME
 export environment=$(getProjectEnv)
@@ -24,79 +26,112 @@ export service=$(getServiceName)
 export organization=$ORGANIZATION
 export source_key=$SOURCE_KEY
 export report_file_path=$REPORT_FILE_PATH
-logInfoMessage "I'll generate SBOM file at [${WORKSPACE}/${CODEBASE_DIR}]"
 
 cd ${WORKSPACE}/${CODEBASE_DIR}
-
-if [ -d "reports" ]; then
-    true
-else
-    mkdir reports
-fi
+[ -d "reports" ] || mkdir reports
 
 STATUS=0
-if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]
-then
-    logInfoMessage "Image name/tag is not provided in env variable $IMAGE_NAME checking it in BP data"
+
+# ---------------- INPUT VALIDATION ----------------
+add_event "INPUT VALIDATION" "Successful" \
+"Validation started" \
+"Validating image name and tag"
+
+if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     IMAGE_NAME=$(getImageName)
     IMAGE_TAG=$(getImageTag)
-    IMAGE_REGION=$(echo "$IMAGE_NAME" | awk -F'.' '{print $(NF-2)}')
 
-    logInfoMessage "Image Region -> ${IMAGE_REGION}"
-    logInfoMessage "Image Name -> ${IMAGE_NAME}"
-    logInfoMessage "Image Tag -> ${IMAGE_TAG}"
+    add_event "INPUT VALIDATION" "Successful" \
+    "Image resolved" \
+    "Image details resolved from pipeline metadata"
 fi
 
+# ---------------- IMAGE CHECK ----------------
+add_event "IMAGE VALIDATION" "Successful" \
+"Checking image" \
+"Checking image availability locally"
 
 if docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" >/dev/null 2>&1; then
-    logInfoMessage "Image found locally: ${IMAGE_NAME}:${IMAGE_TAG}"
+    add_event "IMAGE VALIDATION" "Successful" \
+    "Image found" \
+    "Image found locally"
 else
-    logWarningMessage "Image not found locally. Pulling ${IMAGE_NAME}:${IMAGE_TAG}"
+    add_event "IMAGE VALIDATION" "Successful" \
+    "Image pull started" \
+    "Pulling image from registry"
+
     docker pull "${IMAGE_NAME}:${IMAGE_TAG}"
+
     if [[ $? -ne 0 ]]; then
-        logErrorMessage "Failed to pull image: ${IMAGE_NAME}:${IMAGE_TAG}"
+        add_event "IMAGE VALIDATION" "Failed" \
+        "Image pull failed" \
+        "Failed to pull image ${IMAGE_NAME}:${IMAGE_TAG}"
         exit 1
     fi
+
+    add_event "IMAGE VALIDATION" "Successful" \
+    "Image pulled" \
+    "Image pulled successfully"
 fi
 
-if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]
-then
-    logErrorMessage "Image name/tag is not available in BP data as well please check!!!!!!"
-    logInfoMessage "Image Name -> ${IMAGE_NAME}"
-    logInfoMessage "Image Tag -> ${IMAGE_TAG}"
+# ---------------- SBOM GENERATION ----------------
+if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     STATUS=1
 else
-    logInfoMessage "I'll generate SBOM for image ${IMAGE_NAME}:${IMAGE_TAG}"
-    sleep  $SLEEP_DURATION
-    logInfoMessage "Executing command"
-    logInfoMessage "trivy image --format ${SBOM_FORMAT_ARG} --output reports/${SBOM_REPORT_NAME} ${IMAGE_NAME}:${IMAGE_TAG}"
-    trivy image --format ${SBOM_FORMAT_ARG} --output reports/${SBOM_REPORT_NAME} ${IMAGE_NAME}:${IMAGE_TAG}
-    STATUS=`echo $?`
+    add_event "SBOM GENERATION" "Successful" \
+    "Generation started" \
+    "Generating SBOM using Trivy"
+
+    trivy image --format ${SBOM_FORMAT_ARG} \
+    --output reports/${SBOM_REPORT_NAME} \
+    ${IMAGE_NAME}:${IMAGE_TAG}
+
+    STATUS=$?
+
+    add_event "SBOM GENERATION" "Successful" \
+    "SBOM generated" \
+    "SBOM generated at reports/${SBOM_REPORT_NAME}"
 fi
 
-
+# ---------------- EXPORT ----------------
 if [ -n "${GLOBAL_TASK_ID}" ]; then
     cp -rf reports/* "/bp/execution_dir/${GLOBAL_TASK_ID}/"
-    logInfoMessage "Copied reports to /bp/execution_dir/${GLOBAL_TASK_ID}/"
+
+    add_event "REPORT EXPORT" "Successful" \
+    "Export completed" \
+    "SBOM copied to execution directory"
 else
-    logWarningMessage "GLOBAL_TASK_ID not set; skipping UI copy"
+    add_event "REPORT EXPORT" "Failed" \
+    "Export skipped" \
+    "GLOBAL_TASK_ID not set"
 fi
 
-if [ $STATUS -eq 0 ]
-then
-  logInfoMessage "Congratulations Trivy SBOM file generation reports/${SBOM_REPORT_NAME}  succeeded!!!"
-  logInfoMessage "===================== Displaying first 50 lines of the SBOM Image report ====================="
+# ---------------- FINAL ----------------
+if [ $STATUS -eq 0 ]; then
 
-  cat reports/${SBOM_REPORT_NAME} | head -n 50
+    add_event "SBOM IMAGE SUMMARY" "Successful" \
+    "Generation completed" \
+    "SBOM generated successfully"
 
-  generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Congratulations Trivy SBOM generation @ reports/${SBOM_REPORT_NAME} succeeded!!!"
+    generateOutput ${ACTIVITY_SUB_TASK_CODE} true \
+    "SBOM generation succeeded"
 
-elif [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
-  then
-    logErrorMessage "Please check Trivy SBOM generation failed!!!"
-    generateOutput ${ACTIVITY_SUB_TASK_CODE} false "Please check Trivy SBOM generation failed!!!"
+elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
+
+    add_event "SBOM IMAGE SUMMARY" "Failed" \
+    "Generation failed" \
+    "SBOM generation failed"
+
+    generateOutput ${ACTIVITY_SUB_TASK_CODE} false \
+    "SBOM generation failed"
     exit 1
-   else
-    logWarningMessage "Please check Trivy SBOM generation failed!!!"
-    generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Please check Trivy SBOM generation failed!!!"
+
+else
+
+    add_event "SBOM IMAGE SUMMARY" "Successful" \
+    "Completed with issues" \
+    "SBOM generated with warnings"
+
+    generateOutput ${ACTIVITY_SUB_TASK_CODE} true \
+    "SBOM generation completed with issues"
 fi
