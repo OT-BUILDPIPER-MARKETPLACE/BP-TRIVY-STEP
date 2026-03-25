@@ -124,23 +124,63 @@ fi
 
 # ---------------- MI ----------------
 if [[ -n "${MI_SERVER:-}" ]]; then
+    logInfoMessage "MI_SERVER is set to ${MI_SERVER}. Starting MI data send process..."
 
-    add_event "MI INTEGRATION" "Successful" \
-    "MI started" \
-    "Sending metrics to MI server"
 
-    # (existing MI logic unchanged)
+    logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 --format template --template '{{- $critical := 0 }}{{- $high := 0 }}{{- range . }}{{- range .Vulnerabilities }}{{- if  eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}{{- if  eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}{{- end }}{{- end }}Critical: {{ $critical }}, High: {{ $high }}' -o reports/trivy-mi-results.json ${IMAGE_NAME}:${IMAGE_TAG}"
 
-    add_event "MI INTEGRATION" "Successful" \
-    "MI completed" \
-    "Metrics sent successfully"
+    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 --format template --template '{{- $critical := 0 }}{{- $high := 0 }}{{- range . }}{{- range .Vulnerabilities }}{{- if  eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}{{- if  eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}{{- end }}{{- end }}Critical: {{ $critical }}, High: {{ $high }}' -o reports/trivy-mi-results.json ${IMAGE_NAME}:${IMAGE_TAG}
 
+    awk 'BEGIN { FS="[:,]"; OFS="," }
+    {
+        for (i = 1; i <= NF; i += 2) {
+            gsub(/ /, "", $i); # Remove spaces from keys
+            header = (header ? header OFS : "") $i;
+            value = (value ? value OFS : "") $(i+1);
+        }
+        print header > "reports/trivy_mi.csv";
+        print value >> "reports/trivy_mi.csv";
+    }' reports/trivy-mi-results.json
+    
+    STATUS=$?
+
+    logInfoMessage "Displaying Original Report: reports/trivy_mi.csv"
+    echo "================================================================================"
+    python3 /opt/buildpiper/shell-functions/print_table.py reports/trivy_mi.csv
+    echo "================================================================================"
+
+    export base64EncodedResponse=$(encodeFileContent reports/trivy_mi.csv)
+
+    # Sending MI data
+    export metrics=("trivy_critical" "trivy_high")
+    MI_SEND_STATUS=0
+
+    for metric in "${metrics[@]}"; do
+        export source_key="${metric}"
+        export report_file_path=$REPORT_FILE_PATH
+
+        generateMIDataJson /opt/buildpiper/data/mi.template trivy.mi
+
+        logInfoMessage "Sending ${metric} data to MI server..."
+        logWarningMessage "Loading encoded data trivy.mi..."
+        cat trivy.mi
+
+        if ! sendMIData trivy.mi "${MI_SERVER}"; then
+            logErrorMessage "Failed to push data for ${metric} to MI server"
+            MI_SEND_STATUS=1
+        else
+            logInfoMessage "Successfully sent data for ${metric}"
+        fi
+    done
+
+    if [ "$MI_SEND_STATUS" -eq 0 ]; then
+        logInfoMessage "Trivy scan succeeded, and all metrics were sent to the MI server successfully!"
+    else
+        logErrorMessage "Some metrics failed to send. Please check the MI server or JSON format."
+    fi
 else
-    add_event "MI INTEGRATION" "Successful" \
-    "MI skipped" \
-    "MI server not configured"
+    logWarningMessage "MI_SERVER variable not set. Skipping MI data send block."
 fi
-
 # ---------------- FINAL ----------------
 if [ $STATUS -eq 0 ]; then
 
