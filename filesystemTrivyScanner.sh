@@ -20,17 +20,13 @@ logInfoMessage "============================"
 logInfoMessage "Start Filesystem scanning"
 logInfoMessage "============================"
 
-add_event "TRIVY FS SCAN START" "Successful" \
-"Scan initiated" \
-"Starting filesystem scan"
-
 logInfoMessage "I'll scan Filesystem ${WORKSPACE}/${CODEBASE_DIR}"
 sleep $SLEEP_DURATION
 
 # ---------------- SCAN ----------------
-add_event "TRIVY FS SCAN EXECUTION" "Successful" \
+add_event "VULNERABILITY_SCAN" "Successful" \
 "Scan started" \
-"Running filesystem scan"
+"Scanning filesystem at ${WORKSPACE}/${CODEBASE_DIR} for security vulnerabilities"
 
 if [[ "${REPORT_TYPE}" == "json" || "${REPORT_TYPE}" == "both" ]]; then
 
@@ -86,38 +82,31 @@ if [ -n "${GLOBAL_TASK_ID:-}" ]; then
     mkdir -p "/bp/execution_dir/${GLOBAL_TASK_ID}/"
     cp -rf reports/* "/bp/execution_dir/${GLOBAL_TASK_ID}/"
 
-    add_event "REPORT EXPORT" "Successful" \
-    "Reports exported" \
-    "Reports copied to execution directory"
-else
-    add_event "REPORT EXPORT" "Failed" \
-    "Export skipped" \
-    "GLOBAL_TASK_ID not set"
 fi
 
 # ---------------- FINAL ----------------
 if [ $STATUS -eq 0 ]; then
 
-    add_event "TRIVY FS SCAN SUMMARY" "Successful" \
-    "Scan completed" \
-    "CRITICAL=${CRITICAL}, HIGH=${HIGH}"
+    add_event "SCAN_RESULTS_SUMMARY" "Successful" \
+    "Security scan completed" \
+    "Found ${CRITICAL} Critical, ${HIGH} High, ${MEDIUM} Medium, and ${LOW} Low vulnerabilities"
 
     generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Trivy scan succeeded"
 
 elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
 
-    add_event "TRIVY FS SCAN SUMMARY" "Failed" \
+    add_event "SCAN_RESULTS_SUMMARY" "Failed" \
     "Scan failed" \
-    "Filesystem scan failed"
+    "Filesystem scan failed for ${WORKSPACE}/${CODEBASE_DIR}"
 
     generateOutput ${ACTIVITY_SUB_TASK_CODE} false "Trivy scan failed"
     exit 1
 
 else
 
-    add_event "TRIVY FS SCAN SUMMARY" "Successful" \
-    "Completed with issues" \
-    "Scan completed with vulnerabilities"
+    add_event "SCAN_RESULTS_SUMMARY" "Successful" \
+    "Scan completed with issues" \
+    "Found ${CRITICAL} Critical and ${HIGH} High vulnerabilities"
 
     generateOutput ${ACTIVITY_SUB_TASK_CODE} true "Scan completed with issues"
 fi

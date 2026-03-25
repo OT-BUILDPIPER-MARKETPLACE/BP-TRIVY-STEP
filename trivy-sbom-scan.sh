@@ -14,10 +14,6 @@ logInfoMessage "================================="
 logInfoMessage "Start SBOM image scan step"
 logInfoMessage "================================="
 
-add_event "SBOM SCAN START" "Successful" \
-"Scan initiated" \
-"Starting SBOM scan"
-
 JSON_OUTPUT_PATH="reports/${SBOM_SCAN_REPORT_NAME}"
 OUTPUT_CSV="${OUTPUT_CSV:-sbom_scan_report.csv}"
 
@@ -27,17 +23,10 @@ cd ${WORKSPACE}/${CODEBASE_DIR}
 STATUS=0
 
 # ---------------- INPUT VALIDATION ----------------
-add_event "INPUT VALIDATION" "Successful" \
-"Validation started" \
-"Validating image and SBOM input"
 
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     IMAGE_NAME=$(getImageName)
     IMAGE_TAG=$(getImageTag)
-
-    add_event "INPUT VALIDATION" "Successful" \
-    "Image resolved" \
-    "Image details resolved from pipeline metadata"
 fi
 
 # ---------------- IMAGE CHECK ----------------
@@ -46,45 +35,41 @@ add_event "IMAGE VALIDATION" "Successful" \
 "Checking image availability locally"
 
 if docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" >/dev/null 2>&1; then
-    add_event "IMAGE VALIDATION" "Successful" \
+    add_event "IMAGE_PREPARATION" "Successful" \
     "Image found" \
-    "Image found locally"
+    "Using cached image ${IMAGE_NAME}:${IMAGE_TAG} for SBOM scanning"
 else
-    add_event "IMAGE VALIDATION" "Successful" \
+    add_event "IMAGE_PREPARATION" "Successful" \
     "Image pull started" \
-    "Pulling image from registry"
+    "Pulling image ${IMAGE_NAME}:${IMAGE_TAG} from registry"
 
     docker pull "${IMAGE_NAME}:${IMAGE_TAG}"
 
     if [[ $? -ne 0 ]]; then
-        add_event "IMAGE VALIDATION" "Failed" \
+        add_event "IMAGE_PREPARATION" "Failed" \
         "Image pull failed" \
         "Failed to pull image ${IMAGE_NAME}:${IMAGE_TAG}"
         exit 1
     fi
 
-    add_event "IMAGE VALIDATION" "Successful" \
-    "Image pulled" \
-    "Image pulled successfully"
+    add_event "IMAGE_PREPARATION" "Successful" \
+    "Image ready" \
+    "Successfully pulled fresh image ${IMAGE_NAME}:${IMAGE_TAG} from registry"
 fi
 
 # ---------------- SBOM SCAN ----------------
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     STATUS=1
 else
-    add_event "SBOM SCAN EXECUTION" "Successful" \
+    add_event "SBOM_VULNERABILITY_SCAN" "Successful" \
     "Scan started" \
-    "Scanning SBOM using Trivy"
+    "Scanning SBOM for image ${IMAGE_NAME}:${IMAGE_TAG} for security vulnerabilities"
 
     trivy sbom -f "${SBOM_SCAN_FORMAT}" \
     --output "${JSON_OUTPUT_PATH}" \
     "reports/${SBOM_REPORT_NAME}"
 
     STATUS=$?
-
-    add_event "REPORT GENERATION" "Successful" \
-    "JSON report created" \
-    "SBOM scan JSON report generated"
 fi
 
 # ---------------- ANALYSIS ----------------
@@ -107,31 +92,19 @@ if [ -s "${JSON_OUTPUT_PATH}" ]; then
         ]
     ) | @csv
     ' "${JSON_OUTPUT_PATH}" > "${CSV_OUTPUT_PATH}" || true
-
-    add_event "VULNERABILITY ANALYSIS" "Successful" \
-    "Analysis completed" \
-    "SBOM vulnerability data processed"
 fi
 
 # ---------------- EXPORT ----------------
 if [ -n "${GLOBAL_TASK_ID}" ]; then
     cp -rf reports/* "/bp/execution_dir/${GLOBAL_TASK_ID}/"
-
-    add_event "REPORT EXPORT" "Successful" \
-    "Export completed" \
-    "Reports copied to execution directory"
-else
-    add_event "REPORT EXPORT" "Failed" \
-    "Export skipped" \
-    "GLOBAL_TASK_ID not set"
 fi
 
 # ---------------- FINAL ----------------
 if [ $STATUS -eq 0 ]; then
 
-    add_event "SBOM SCAN SUMMARY" "Successful" \
-    "Scan completed" \
-    "SBOM scan completed successfully"
+    add_event "SBOM_SCAN_SUMMARY" "Successful" \
+    "SBOM scan completed" \
+    "SBOM security scan for ${IMAGE_NAME}:${IMAGE_TAG} completed successfully"
 
     cat ${CSV_OUTPUT_PATH} | head -n 50
 
@@ -140,9 +113,9 @@ if [ $STATUS -eq 0 ]; then
 
 elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
 
-    add_event "SBOM SCAN SUMMARY" "Failed" \
+    add_event "SBOM_SCAN_SUMMARY" "Failed" \
     "Scan failed" \
-    "SBOM scan failed"
+    "SBOM scan failed for ${IMAGE_NAME}:${IMAGE_TAG}"
 
     cat ${CSV_OUTPUT_PATH} | head -n 50
 
@@ -152,9 +125,9 @@ elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
 
 else
 
-    add_event "SBOM SCAN SUMMARY" "Successful" \
-    "Completed with issues" \
-    "SBOM scan completed with vulnerabilities"
+    add_event "SBOM_SCAN_SUMMARY" "Successful" \
+    "Scan completed with issues" \
+    "SBOM scan for ${IMAGE_NAME}:${IMAGE_TAG} completed with security findings"
 
     cat ${CSV_OUTPUT_PATH} | head -n 50
 

@@ -36,9 +36,9 @@ logInfoMessage "I'll generate SBOM for filesystem path ${WORKSPACE}/${CODEBASE_D
 sleep $SLEEP_DURATION
 
 # ---------------- SBOM GENERATION ----------------
-add_event "SBOM GENERATION" "Successful" \
+add_event "SBOM_GENERATION" "Successful" \
 "Generation started" \
-"Generating SBOM for filesystem"
+"Generating SBOM for filesystem at ${WORKSPACE}/${CODEBASE_DIR}"
 
 trivy fs --format ${SBOM_FORMAT_ARG} \
 --output reports/${SBOM_FS_REPORT_NAME} \
@@ -68,9 +68,9 @@ fi
 # ---------------- FINAL ----------------
 if [ $STATUS -eq 0 ]; then
 
-  add_event "SBOM FS SUMMARY" "Successful" \
-  "Generation completed" \
-  "Filesystem SBOM generated successfully"
+  add_event "SBOM_GENERATION_SUMMARY" "Successful" \
+  "SBOM generation completed" \
+  "SBOM for filesystem at ${WORKSPACE}/${CODEBASE_DIR} generated successfully"
 
   logInfoMessage "Congratulations Trivy filesystem SBOM generation @ reports/${SBOM_FS_REPORT_NAME} succeeded!!!"
 
@@ -81,9 +81,9 @@ if [ $STATUS -eq 0 ]; then
 
 elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
 
-  add_event "SBOM FS SUMMARY" "Failed" \
+  add_event "SBOM_GENERATION_SUMMARY" "Failed" \
   "Generation failed" \
-  "Filesystem SBOM generation failed"
+  "Filesystem SBOM generation failed for ${WORKSPACE}/${CODEBASE_DIR}"
 
   generateOutput ${ACTIVITY_SUB_TASK_CODE} false \
   "SBOM generation failed"
@@ -91,9 +91,9 @@ elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
 
 else
 
-  add_event "SBOM FS SUMMARY" "Successful" \
-  "Completed with issues" \
-  "SBOM generated with warnings"
+  add_event "SBOM_GENERATION_SUMMARY" "Successful" \
+  "Generation completed with warnings" \
+  "SBOM generation for ${WORKSPACE}/${CODEBASE_DIR} completed with some warnings"
 
   generateOutput ${ACTIVITY_SUB_TASK_CODE} true \
   "SBOM generation completed with issues"

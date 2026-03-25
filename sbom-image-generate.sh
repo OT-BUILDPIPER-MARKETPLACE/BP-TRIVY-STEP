@@ -16,10 +16,6 @@ logInfoMessage "============================"
 logInfoMessage "Generating SBOM for Image"
 logInfoMessage "============================"
 
-add_event "SBOM IMAGE GENERATION START" "Successful" \
-"Generation initiated" \
-"Starting SBOM generation for image"
-
 export application=$APPLICATION_NAME
 export environment=$(getProjectEnv)
 export service=$(getServiceName)
@@ -40,10 +36,6 @@ add_event "INPUT VALIDATION" "Successful" \
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     IMAGE_NAME=$(getImageName)
     IMAGE_TAG=$(getImageTag)
-
-    add_event "INPUT VALIDATION" "Successful" \
-    "Image resolved" \
-    "Image details resolved from pipeline metadata"
 fi
 
 # ---------------- IMAGE CHECK ----------------
@@ -52,45 +44,41 @@ add_event "IMAGE VALIDATION" "Successful" \
 "Checking image availability locally"
 
 if docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" >/dev/null 2>&1; then
-    add_event "IMAGE VALIDATION" "Successful" \
+    add_event "IMAGE_PREPARATION" "Successful" \
     "Image found" \
-    "Image found locally"
+    "Using cached image ${IMAGE_NAME}:${IMAGE_TAG} for SBOM generation"
 else
-    add_event "IMAGE VALIDATION" "Successful" \
+    add_event "IMAGE_PREPARATION" "Successful" \
     "Image pull started" \
-    "Pulling image from registry"
+    "Pulling image ${IMAGE_NAME}:${IMAGE_TAG} from registry"
 
     docker pull "${IMAGE_NAME}:${IMAGE_TAG}"
 
     if [[ $? -ne 0 ]]; then
-        add_event "IMAGE VALIDATION" "Failed" \
+        add_event "IMAGE_PREPARATION" "Failed" \
         "Image pull failed" \
-        "Failed to pull image ${IMAGE_NAME}:${IMAGE_TAG}"
+        "Failed to pull image ${IMAGE_NAME}:${IMAGE_TAG}. Check credentials or image name."
         exit 1
     fi
 
-    add_event "IMAGE VALIDATION" "Successful" \
-    "Image pulled" \
-    "Image pulled successfully"
+    add_event "IMAGE_PREPARATION" "Successful" \
+    "Image ready" \
+    "Successfully pulled fresh image ${IMAGE_NAME}:${IMAGE_TAG} from registry"
 fi
 
 # ---------------- SBOM GENERATION ----------------
 if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
     STATUS=1
 else
-    add_event "SBOM GENERATION" "Successful" \
+    add_event "SBOM_GENERATION" "Successful" \
     "Generation started" \
-    "Generating SBOM using Trivy"
+    "Generating SBOM for image ${IMAGE_NAME}:${IMAGE_TAG}"
 
     trivy image --format ${SBOM_FORMAT_ARG} \
     --output reports/${SBOM_REPORT_NAME} \
     ${IMAGE_NAME}:${IMAGE_TAG}
 
     STATUS=$?
-
-    add_event "SBOM GENERATION" "Successful" \
-    "SBOM generated" \
-    "SBOM generated at reports/${SBOM_REPORT_NAME}"
 fi
 
 # ---------------- EXPORT ----------------
@@ -109,18 +97,18 @@ fi
 # ---------------- FINAL ----------------
 if [ $STATUS -eq 0 ]; then
 
-    add_event "SBOM IMAGE SUMMARY" "Successful" \
-    "Generation completed" \
-    "SBOM generated successfully"
+    add_event "SBOM_GENERATION_SUMMARY" "Successful" \
+    "SBOM generation completed" \
+    "SBOM for image ${IMAGE_NAME}:${IMAGE_TAG} generated successfully"
 
     generateOutput ${ACTIVITY_SUB_TASK_CODE} true \
     "SBOM generation succeeded"
 
 elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
 
-    add_event "SBOM IMAGE SUMMARY" "Failed" \
+    add_event "SBOM_GENERATION_SUMMARY" "Failed" \
     "Generation failed" \
-    "SBOM generation failed"
+    "SBOM generation failed for ${IMAGE_NAME}:${IMAGE_TAG}"
 
     generateOutput ${ACTIVITY_SUB_TASK_CODE} false \
     "SBOM generation failed"
@@ -128,9 +116,9 @@ elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
 
 else
 
-    add_event "SBOM IMAGE SUMMARY" "Successful" \
-    "Completed with issues" \
-    "SBOM generated with warnings"
+    add_event "SBOM_GENERATION_SUMMARY" "Successful" \
+    "Generation completed with warnings" \
+    "SBOM generation for ${IMAGE_NAME}:${IMAGE_TAG} completed with some warnings"
 
     generateOutput ${ACTIVITY_SUB_TASK_CODE} true \
     "SBOM generation completed with issues"
