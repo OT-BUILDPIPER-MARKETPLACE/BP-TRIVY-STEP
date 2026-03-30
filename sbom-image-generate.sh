@@ -295,8 +295,15 @@ elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
     generateOutput ${ACTIVITY_SUB_TASK_CODE} false "$FINAL_MESSAGE"
     exit 1
 else
-    logWarningMessage "Please check Trivy SBOM generation failed!"
-    generateOutput ${ACTIVITY_SUB_TASK_CODE} true "$FINAL_MESSAGE"
+    logWarningMessage "Trivy scan failed, but the step is configured as NON-BLOCKING (warning mode).
+
+  If you want the pipeline to FAIL on leaks:
+  - Go to job template settings
+  - Set VALIDATION_FAILURE_ACTION = FAILURE
+
+  Current setting allows pipeline to continue."
+    add_event "validation mode" "Successful" "Non-blocking validation" "Scan failed but pipeline continued because VALIDATION_FAILURE_ACTION is not FAILURE"
+    generateOutput ${ACTIVITY_SUB_TASK_CODE} true "$FINAL_MESSAGE"  
 fi
 
 saveTaskStatus ${STATUS} ${ACTIVITY_SUB_TASK_CODE}
