@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -euo pipefail
 
 source /opt/buildpiper/shell-functions/functions.sh
 source /opt/buildpiper/shell-functions/mi-functions.sh
@@ -7,10 +9,27 @@ source /opt/buildpiper/shell-functions/str-functions.sh
 source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
 source /opt/buildpiper/shell-functions/getDataFile.sh
+source ./login.sh
 
-if [ "$DEBUG" = true ]; then
+###############################################
+### DEBUG
+###############################################
+if [[ "${DEBUG:-false}" == "true" ]]; then
   set -x
 fi
+
+###############################################
+### INITIALIZATION
+###############################################
+CODEBASE_LOCATION="${WORKSPACE}/${CODEBASE_DIR}"
+REPORTS_DIR="${CODEBASE_LOCATION}/reports"
+
+mkdir -p "${REPORTS_DIR}"
+chmod -R 777 "${REPORTS_DIR}" 2>/dev/null || true
+
+logInfoMessage "REPORTS_DIR=${REPORTS_DIR}"
+
+cd "${CODEBASE_LOCATION}"
 
 ###############################################
 ### EVENTS TRACKING
@@ -18,13 +37,14 @@ fi
 EVENTS='{}'
 
 add_event() {
+
   local key="${1:-}"
   local status="${2:-}"
   local reason="${3:-}"
   local message="${4:-}"
 
-  if [ -z "$key" ] || [ -z "$status" ]; then
-    echo "Error: add_event requires at least 'key' and 'status' parameters" >&2
+  if [[ -z "$key" || -z "$status" ]]; then
+    echo "Error: add_event requires key and status" >&2
     return 1
   fi
 
@@ -36,274 +56,528 @@ add_event() {
     --arg reason "$reason" \
     --arg message "$message" \
     '. + {($k): {status: $status, reason: $reason, message: $message}}' \
-    <<< "$EVENTS") || {
-    echo "Error: Failed to add event to EVENTS JSON" >&2
-    return 1
-  }
+    <<< "$EVENTS")
 }
 
 ###############################################
 ### OUTPUT FILE
 ###############################################
-SBOM_OUTPUT_FILE="${SBOM_OUTPUT_FILE:-${ACTIVITY_SUB_TASK_CODE}_output.json}"
+TRIVY_OUTPUT_FILE="${TRIVY_OUTPUT_FILE:-${ACTIVITY_SUB_TASK_CODE}_output.json}"
 
-logInfoMessage "============================"
-logInfoMessage "Generating SBOM for Image"
-logInfoMessage "============================"
+###############################################
+### THRESHOLD CONFIGURATION
+###############################################
+TRIVY_THRESHOLD_CRITICAL="${TRIVY_THRESHOLD_CRITICAL:-0}"
+TRIVY_THRESHOLD_HIGH="${TRIVY_THRESHOLD_HIGH:--1}"
+TRIVY_THRESHOLD_MEDIUM="${TRIVY_THRESHOLD_MEDIUM:--1}"
+TRIVY_THRESHOLD_LOW="${TRIVY_THRESHOLD_LOW:--1}"
+TRIVY_THRESHOLD_TOTAL="${TRIVY_THRESHOLD_TOTAL:--1}"
 
-export application=$APPLICATION_NAME
-export environment=$(getProjectEnv)
-export service=$(getServiceName)
-export organization=$ORGANIZATION
-export source_key=$SOURCE_KEY
-export report_file_path=$REPORT_FILE_PATH
+VALIDATION_ACTION="${VALIDATION_FAILURE_ACTION:-FAILURE}"
 
-logInfoMessage "I'll generate SBOM file at [${WORKSPACE}/${CODEBASE_DIR}]"
+###############################################
+### LOGGING
+###############################################
+logInfoMessage "======================================="
+logInfoMessage "Starting Trivy Image Scan (Daemonless)"
+logInfoMessage "======================================="
 
-cd ${WORKSPACE}/${CODEBASE_DIR}
+export application="${APPLICATION_NAME:-}"
+export environment="$(getProjectEnv)"
+export service="$(getServiceName)"
+export organization="${ORGANIZATION:-}"
+export source_key="${SOURCE_KEY:-}"
+export report_file_path="${REPORT_FILE_PATH:-}"
 
 ###############################################
 ### CREATE EXECUTION DIRECTORY
 ###############################################
-if [ -n "${GLOBAL_TASK_ID:-}" ]; then
+if [[ -n "${GLOBAL_TASK_ID:-}" ]]; then
+
     EXEC_DIR="/bp/execution_dir/${GLOBAL_TASK_ID}"
+
     mkdir -p "${EXEC_DIR}"
-    add_event "create execution dir" "Successful" "Directory created" "Created ${EXEC_DIR}"
+
+    chmod -R 777 "${EXEC_DIR}" 2>/dev/null || true
+
+    add_event "create execution dir" "Successful" \
+    "Directory created" \
+    "Created ${EXEC_DIR}"
+
 else
-    logErrorMessage "GLOBAL_TASK_ID not set; cannot proceed"
-    add_event "create execution dir" "Failed" "GLOBAL_TASK_ID missing" "Cannot create execution directory"
+
+    logErrorMessage "GLOBAL_TASK_ID not set"
+
+    add_event "create execution dir" "Failed" \
+    "GLOBAL_TASK_ID missing" \
+    "Cannot create execution directory"
+
     exit 1
 fi
+
+###############################################
+### REPORT FILES
+###############################################
+JSON_REPORT="${EXEC_DIR}/trivy-image-sbom-gen-results.json"
+
+HTML_REPORT="${EXEC_DIR}/trivy-image-sbom-gen-results.html"
+
+REPORT_CSV="${REPORT_CSV:-trivy-image-sbom-gen-report.csv}"
+
+CSV_REPORT="${EXEC_DIR}/${REPORT_CSV}"
 
 STATUS=0
 
+sleep "${SLEEP_DURATION:-0}"
+
 ###############################################
-### RESOLVE IMAGE NAME AND TAG
+### RESOLVE IMAGE DETAILS
 ###############################################
-if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
-    logInfoMessage "Image name/tag is not provided in env variable, checking BP data"
+if [[ -z "${IMAGE_NAME:-}" || -z "${IMAGE_TAG:-}" ]]; then
+
+    logInfoMessage "Fetching image details from BP data"
+
     IMAGE_NAME=$(getImageName)
     IMAGE_TAG=$(getImageTag)
-    IMAGE_REGION=$(echo "$IMAGE_NAME" | awk -F'.' '{print $(NF-2)}')
-
-    logInfoMessage "Image Region -> ${IMAGE_REGION}"
-    logInfoMessage "Image Name -> ${IMAGE_NAME}"
-    logInfoMessage "Image Tag -> ${IMAGE_TAG}"
 fi
 
-if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ]; then
-    logErrorMessage "Image name/tag is not available in BP data as well. Please check!"
-    add_event "resolve image" "Failed" "Image name/tag missing" "IMAGE_NAME or IMAGE_TAG could not be resolved"
-    STATUS=1
-    
-    # Create error output and exit
-    ERROR_EVENTS=$(echo "$EVENTS" | jq '[to_entries[] | select(.value.status == "Failed") | .key]')
-    
-    jq -n \
-      --argjson events "$EVENTS" \
-      --argjson error_events "$ERROR_EVENTS" \
-      '{
-        build: {
-          status: false,
-          reason: "Image name/tag missing",
-          message: "IMAGE_NAME or IMAGE_TAG could not be resolved",
-          events: $events,
-          current_error: "Image name/tag missing",
-          error_events: $error_events
-        },
-        events: $events,
-        output_vars: {
-          sbom_image: {
-            status: "Failed",
-            reason: "Image name/tag missing",
-            message: "IMAGE_NAME or IMAGE_TAG could not be resolved",
-            current_error: "Image name/tag missing",
-            error_events: $error_events
-          }
-        }
-      }' > "${EXEC_DIR}/${SBOM_OUTPUT_FILE}"
-    
-    generateOutput ${ACTIVITY_SUB_TASK_CODE} false "Image name/tag could not be resolved"
+if [[ -z "${IMAGE_NAME:-}" || -z "${IMAGE_TAG:-}" ]]; then
+
+    logErrorMessage "Unable to resolve IMAGE_NAME or IMAGE_TAG"
+
+    add_event "resolve image" "Failed" \
+    "Image resolution failed" \
+    "IMAGE_NAME or IMAGE_TAG could not be resolved"
+
+    generateOutput "${ACTIVITY_SUB_TASK_CODE}" false \
+    "Image name/tag could not be resolved"
+
     exit 1
 fi
 
-add_event "resolve image" "Successful" "Image resolved" "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
+FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
+
+logInfoMessage "Image Name -> ${IMAGE_NAME}"
+logInfoMessage "Image Tag  -> ${IMAGE_TAG}"
+
+add_event "resolve image" "Successful" \
+"Image resolved" \
+"${FULL_IMAGE}"
 
 ###############################################
-### PULL IMAGE IF NOT PRESENT
+### REGISTRY LOGIN
 ###############################################
-if docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" >/dev/null 2>&1; then
-    logInfoMessage "Image found locally: ${IMAGE_NAME}:${IMAGE_TAG}"
-    add_event "image pull" "Successful" "Image available locally" "${IMAGE_NAME}:${IMAGE_TAG} found in local docker daemon"
+logInfoMessage "Logging into configured registries"
+
+if login_all_registries; then
+
+    add_event "registry login" "Successful" \
+    "Registry login completed" \
+    "Authenticated successfully"
+
 else
-    logWarningMessage "Image not found locally. Pulling ${IMAGE_NAME}:${IMAGE_TAG}"
-    
-    if ! docker pull "${IMAGE_NAME}:${IMAGE_TAG}"; then
-        logErrorMessage "Failed to pull image: ${IMAGE_NAME}:${IMAGE_TAG}"
-        add_event "image pull" "Failed" "Docker pull failed" "Could not pull ${IMAGE_NAME}:${IMAGE_TAG}"
-        
-        ERROR_EVENTS=$(echo "$EVENTS" | jq '[to_entries[] | select(.value.status == "Failed") | .key]')
-        
-        jq -n \
-          --argjson events "$EVENTS" \
-          --argjson error_events "$ERROR_EVENTS" \
-          '{
-            build: {
-              status: false,
-              reason: "Docker pull failed",
-              message: "Could not pull image",
-              events: $events,
-              current_error: "Docker pull failed",
-              error_events: $error_events
-            },
-            events: $events,
-            output_vars: {
-              sbom_image: {
-                status: "Failed",
-                reason: "Docker pull failed",
-                message: "Could not pull image",
-                current_error: "Docker pull failed",
-                error_events: $error_events
-              }
-            }
-          }' > "${EXEC_DIR}/${SBOM_OUTPUT_FILE}"
-        
-        generateOutput ${ACTIVITY_SUB_TASK_CODE} false "Failed to pull image"
-        exit 1
-    fi
-    
-    logInfoMessage "Image successfully pulled: ${IMAGE_NAME}:${IMAGE_TAG}"
-    add_event "image pull" "Successful" "Image pulled" "${IMAGE_NAME}:${IMAGE_TAG} pulled successfully"
+
+    add_event "registry login" "Failed" \
+    "Registry login failed" \
+    "Unable to authenticate"
+
+    generateOutput "${ACTIVITY_SUB_TASK_CODE}" false \
+    "Registry login failed"
+
+    exit 1
 fi
 
 ###############################################
-### GENERATE SBOM
+### VALIDATE IMAGE ACCESSIBILITY
 ###############################################
-SBOM_REPORT="${EXEC_DIR}/${SBOM_REPORT_NAME}"
+logInfoMessage "Validating image accessibility"
 
-logInfoMessage "I'll generate SBOM for image ${IMAGE_NAME}:${IMAGE_TAG}"
-sleep $SLEEP_DURATION
+if ! skopeo inspect "docker://${FULL_IMAGE}" >/dev/null 2>&1; then
 
-logInfoMessage "Executing command"
-logInfoMessage "trivy image --format ${SBOM_FORMAT_ARG} --output ${SBOM_REPORT} ${IMAGE_NAME}:${IMAGE_TAG}"
+    logErrorMessage "Unable to access image from registry"
 
-trivy image --format ${SBOM_FORMAT_ARG} --output "${SBOM_REPORT}" ${IMAGE_NAME}:${IMAGE_TAG}
+    add_event "image validation" "Failed" \
+    "Registry access failed" \
+    "Could not access ${FULL_IMAGE}"
+
+    generateOutput "${ACTIVITY_SUB_TASK_CODE}" false \
+    "Unable to access image from registry"
+
+    exit 1
+fi
+
+add_event "image validation" "Successful" \
+"Image accessible" \
+"${FULL_IMAGE} is accessible"
+
+###############################################
+### TRIVY CACHE
+###############################################
+export TRIVY_CACHE_DIR="/tmp/trivy-cache"
+
+mkdir -p "${TRIVY_CACHE_DIR}"
+
+chmod -R 777 "${TRIVY_CACHE_DIR}" 2>/dev/null || true
+
+logInfoMessage "TRIVY_CACHE_DIR=${TRIVY_CACHE_DIR}"
+
+###############################################
+### RUN TRIVY SCAN
+###############################################
+logInfoMessage "Executing Trivy image scan"
+
+logInfoMessage "Command:"
+logInfoMessage "trivy image --format json -o ${JSON_REPORT} ${FULL_IMAGE}"
+
+set +e
+
+trivy image \
+  -q \
+  --timeout 30m \
+  --scanners vuln \
+  --severity "${SCAN_SEVERITY}" \
+  --format json \
+  -o "${JSON_REPORT}" \
+  "${FULL_IMAGE}"
+
 STATUS=$?
 
-if [[ "$STATUS" -eq 0 ]]; then
-  add_event "sbom generation" "Successful" "SBOM created" "Trivy successfully generated SBOM at ${SBOM_REPORT}"
-  
-  # Check if file exists and has content
-  if [[ -s "${SBOM_REPORT}" ]]; then
-    FILE_SIZE=$(stat -f%z "${SBOM_REPORT}" 2>/dev/null || stat -c%s "${SBOM_REPORT}" 2>/dev/null || echo 0)
-    add_event "verify sbom file" "Successful" "File verified" "SBOM file created with size ${FILE_SIZE} bytes"
-    
-    logInfoMessage "Congratulations! Trivy image SBOM generation succeeded!"
-    logInfoMessage "SBOM file: ${SBOM_REPORT}"
-    logInfoMessage "===================== Displaying first 50 lines of the SBOM report ====================="
-    head -n 50 "${SBOM_REPORT}"
-    logInfoMessage "========================================================================================"
-  else
-    add_event "verify sbom file" "Failed" "File empty or missing" "SBOM file was not created or is empty"
-    STATUS=1
-  fi
+set -e
+
+chmod 777 "${JSON_REPORT}" 2>/dev/null || true
+
+logInfoMessage "Trivy completed with exit code ${STATUS}"
+
+###############################################
+### HANDLE TRIVY STATUS
+###############################################
+if [[ "${STATUS}" -eq 0 ]]; then
+
+    add_event "trivy scan" "Successful" \
+    "No vulnerabilities detected" \
+    "Trivy completed successfully"
+
+elif [[ "${STATUS}" -eq 1 ]]; then
+
+    add_event "trivy scan" "Successful" \
+    "Vulnerabilities detected" \
+    "Trivy found vulnerabilities"
+
 else
-  add_event "sbom generation" "Failed" "Trivy execution error" "trivy image exited with code $STATUS"
+
+    add_event "trivy scan" "Failed" \
+    "Trivy execution failed" \
+    "Unexpected trivy exit code ${STATUS}"
+
+    generateOutput "${ACTIVITY_SUB_TASK_CODE}" false \
+    "Trivy execution failed"
+
+    exit 1
 fi
 
 ###############################################
-### DETERMINE FINAL STATUS
+### VERIFY REPORT
 ###############################################
-FINAL_STATUS="Successful"
-FINAL_REASON="SBOM generation completed"
-FINAL_MESSAGE="Trivy image SBOM generated successfully at ${SBOM_REPORT_NAME}"
+if [[ -s "${JSON_REPORT}" ]]; then
 
-if [[ "$STATUS" -ne 0 ]]; then
-  FINAL_STATUS="failed"
-  FINAL_REASON="SBOM generation failed"
-  FINAL_MESSAGE="Trivy image SBOM generation failed"
+    FILE_SIZE=$(stat -f%z "${JSON_REPORT}" 2>/dev/null || stat -c%s "${JSON_REPORT}" 2>/dev/null || echo 0)
+
+    add_event "verify report" "Successful" \
+    "Report verified" \
+    "Report generated with size ${FILE_SIZE} bytes"
+
+else
+
+    add_event "verify report" "Failed" \
+    "Report missing" \
+    "JSON report not generated"
+
+    generateOutput "${ACTIVITY_SUB_TASK_CODE}" false \
+    "JSON report missing"
+
+    exit 1
 fi
 
 ###############################################
-### BUILD ERROR EVENTS LIST
+### GENERATE HTML REPORT
+###############################################
+if [[ "${REPORT_TYPE:-json}" == "html" || "${REPORT_TYPE:-json}" == "both" ]]; then
+
+    logInfoMessage "Generating HTML report"
+
+    trivy image \
+      -q \
+      --timeout 30m \
+      --scanners vuln \
+      --severity "${SCAN_SEVERITY}" \
+      --format template \
+      --template @/contrib/html.tpl \
+      -o "${HTML_REPORT}" \
+      "${FULL_IMAGE}"
+
+    chmod 777 "${HTML_REPORT}" 2>/dev/null || true
+
+    add_event "generate html report" "Successful" \
+    "HTML report generated" \
+    "${HTML_REPORT}"
+fi
+
+###############################################
+### PARSE RESULTS
+###############################################
+CRITICAL=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
+
+HIGH=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="HIGH")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
+
+MEDIUM=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="MEDIUM")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
+
+LOW=$(jq '([.Results[]? .Vulnerabilities[]? | select(.Severity=="LOW")] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
+
+TOTAL=$(jq '([.Results[]? .Vulnerabilities[]?] | length)' "${JSON_REPORT}" 2>/dev/null || echo 0)
+
+logInfoMessage "CRITICAL=${CRITICAL}"
+logInfoMessage "HIGH=${HIGH}"
+logInfoMessage "MEDIUM=${MEDIUM}"
+logInfoMessage "LOW=${LOW}"
+logInfoMessage "TOTAL=${TOTAL}"
+
+add_event "parse scan results" "Successful" \
+"Metrics extracted" \
+"CRITICAL=${CRITICAL} HIGH=${HIGH} MEDIUM=${MEDIUM} LOW=${LOW} TOTAL=${TOTAL}"
+
+###############################################
+### GENERATE CSV REPORT
+###############################################
+logInfoMessage "Generating CSV report -> ${CSV_REPORT}"
+
+echo "Library,CVE_ID,Severity,InstalledVersion,FixedVersion,Title" > "${CSV_REPORT}"
+
+if [[ "${TOTAL}" -gt 0 ]]; then
+
+    jq -r '
+      .Results[]?
+      | select(.Vulnerabilities != null)
+      | .Vulnerabilities[]?
+      | [
+          (.PkgName // "N/A"),
+          (.VulnerabilityID // "N/A"),
+          (.Severity // "N/A"),
+          (.InstalledVersion // "N/A"),
+          (.FixedVersion // "N/A"),
+          (.Title // "N/A")
+        ]
+      | @csv
+    ' "${JSON_REPORT}" >> "${CSV_REPORT}" || true
+
+    add_event "generate csv report" "Successful" \
+    "CSV report generated" \
+    "Vulnerabilities exported to CSV"
+
+else
+
+    echo '"No vulnerabilities","N/A","N/A","N/A","N/A","Clean image"' >> "${CSV_REPORT}"
+
+    add_event "generate csv report" "Successful" \
+    "No vulnerabilities found" \
+    "Generated clean report"
+fi
+
+chmod 777 "${CSV_REPORT}" 2>/dev/null || true
+
+###############################################
+### COPY REPORTS TO REPORTS DIRECTORY
+###############################################
+cp -f "${JSON_REPORT}" "${REPORTS_DIR}/" 2>/dev/null || true
+
+cp -f "${CSV_REPORT}" "${REPORTS_DIR}/" 2>/dev/null || true
+
+if [[ -f "${HTML_REPORT}" ]]; then
+    cp -f "${HTML_REPORT}" "${REPORTS_DIR}/" 2>/dev/null || true
+fi
+
+chmod -R 777 "${REPORTS_DIR}" 2>/dev/null || true
+
+add_event "copy reports" "Successful" \
+"Reports copied" \
+"Reports copied to ${REPORTS_DIR}"
+
+###############################################
+### COPY REPORTS TO EXECUTION DIRECTORY
+###############################################
+cp -f "${JSON_REPORT}" "${EXEC_DIR}/" 2>/dev/null || true
+cp -f "${CSV_REPORT}" "${EXEC_DIR}/" 2>/dev/null || true
+
+if [[ -f "${HTML_REPORT}" ]]; then
+    cp -f "${HTML_REPORT}" "${EXEC_DIR}/" 2>/dev/null || true
+fi
+
+chmod -R 777 "${EXEC_DIR}" 2>/dev/null || true
+
+###############################################
+### THRESHOLD CHECKS
+###############################################
+THRESHOLD_STATUS=0
+
+check_threshold() {
+
+    local severity="$1"
+    local detected="$2"
+    local threshold="$3"
+
+    if [[ "${threshold}" == "-1" ]]; then
+        return 0
+    fi
+
+    if [[ "${detected}" -gt "${threshold}" ]]; then
+
+        logErrorMessage "${severity} threshold breached"
+
+        add_event "threshold ${severity}" "Failed" \
+        "${severity} threshold breached" \
+        "Detected=${detected} Allowed=${threshold}"
+
+        THRESHOLD_STATUS=1
+
+    else
+
+        add_event "threshold ${severity}" "Successful" \
+        "Threshold within limit" \
+        "Detected=${detected} Allowed=${threshold}"
+    fi
+}
+
+check_threshold "critical" "${CRITICAL}" "${TRIVY_THRESHOLD_CRITICAL}"
+check_threshold "high" "${HIGH}" "${TRIVY_THRESHOLD_HIGH}"
+check_threshold "medium" "${MEDIUM}" "${TRIVY_THRESHOLD_MEDIUM}"
+check_threshold "low" "${LOW}" "${TRIVY_THRESHOLD_LOW}"
+check_threshold "total" "${TOTAL}" "${TRIVY_THRESHOLD_TOTAL}"
+
+if [[ "${THRESHOLD_STATUS}" -ne 0 ]]; then
+    STATUS=1
+fi
+
+###############################################
+### FINAL STATUS
+###############################################
+FINAL_MESSAGE="CRITICAL=${CRITICAL} HIGH=${HIGH} MEDIUM=${MEDIUM} LOW=${LOW} TOTAL=${TOTAL}"
+
+if [[ "${STATUS}" -eq 0 ]]; then
+
+    FINAL_STATUS="Successful"
+
+    add_event "scan summary" "Successful" \
+    "Scan completed successfully" \
+    "${FINAL_MESSAGE}"
+
+else
+
+    FINAL_STATUS="Failed"
+
+    add_event "scan summary" "Failed" \
+    "Threshold breached" \
+    "${FINAL_MESSAGE}"
+fi
+
+###############################################
+### ERROR EVENTS
 ###############################################
 ERROR_EVENTS=$(echo "$EVENTS" | jq '[to_entries[] | select(.value.status == "Failed") | .key]')
 
 ###############################################
-### MAP STATUS TO BOOLEAN
-###############################################
-if [[ "$FINAL_STATUS" == "Successful" ]]; then
-  STATUS_BOOL="true"
-else
-  STATUS_BOOL="false"
-fi
-
-###############################################
-### CREATE STRUCTURED OUTPUT JSON
+### OUTPUT JSON
 ###############################################
 jq -n \
   --argjson events "$EVENTS" \
   --argjson error_events "$ERROR_EVENTS" \
-  --argjson status_bool "$STATUS_BOOL" \
   --arg final_status "$FINAL_STATUS" \
-  --arg final_reason "$FINAL_REASON" \
   --arg final_message "$FINAL_MESSAGE" \
-  --arg sbom_format "${SBOM_FORMAT_ARG}" \
-  --arg sbom_report "${SBOM_REPORT_NAME}" \
   --arg image_name "${IMAGE_NAME}" \
   --arg image_tag "${IMAGE_TAG}" \
-  '{
-    build: {
-      status: $status_bool,
-      reason: $final_reason,
-      message: $final_message,
-      events: $events,
-      current_error: (if $status_bool == "false" then $final_reason else "" end),
-      error_events: $error_events
-    },
+  --arg critical "${CRITICAL}" \
+  --arg high "${HIGH}" \
+  --arg medium "${MEDIUM}" \
+  --arg low "${LOW}" \
+  --arg total "${TOTAL}" \
+'{
+  build: {
+    status: ($final_status == "Successful"),
+    message: $final_message,
     events: $events,
-    output_vars: {
-      sbom_image: {
-        status: $final_status,
-        reason: $final_reason,
-        message: $final_message,
-        image: {
-          name: $image_name,
-          tag: $image_tag
-        },
-        sbom: {
-          format: $sbom_format,
-          report_name: $sbom_report
-        },
-        current_error: (if $final_status == "failed" then $final_reason else "" end),
-        error_events: $error_events
+    error_events: $error_events
+  },
+  output_vars: {
+    trivy_image_scan: {
+      status: $final_status,
+      message: $final_message,
+      image: {
+        name: $image_name,
+        tag: $image_tag
+      },
+      vulnerabilities: {
+        critical: ($critical|tonumber),
+        high: ($high|tonumber),
+        medium: ($medium|tonumber),
+        low: ($low|tonumber),
+        total: ($total|tonumber)
       }
     }
-  }' > "${EXEC_DIR}/${SBOM_OUTPUT_FILE}"
+  }
+}' > "${EXEC_DIR}/${TRIVY_OUTPUT_FILE}"
 
-logInfoMessage "Output JSON written to ${EXEC_DIR}/${SBOM_OUTPUT_FILE}"
-add_event "create output" "Successful" "Output file created" "Structured output written to ${SBOM_OUTPUT_FILE}"
+chmod 777 "${EXEC_DIR}/${TRIVY_OUTPUT_FILE}" 2>/dev/null || true
+
+logInfoMessage "Output written -> ${EXEC_DIR}/${TRIVY_OUTPUT_FILE}"
 
 ###############################################
-### SIGNAL PASS/FAIL TO BUILDPIPER PIPELINE
+### FINAL SUMMARY
 ###############################################
-if [ $STATUS -eq 0 ]; then
-  logInfoMessage "Congratulations! Trivy image SBOM generation succeeded!"
-  generateOutput ${ACTIVITY_SUB_TASK_CODE} true "$FINAL_MESSAGE"
-elif [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
-    logErrorMessage "Please check Trivy SBOM generation failed!"
-    generateOutput ${ACTIVITY_SUB_TASK_CODE} false "$FINAL_MESSAGE"
-    exit 1
+echo "========================================="
+echo "Trivy Image Scan Summary"
+echo "${FINAL_MESSAGE}"
+echo "========================================="
+
+logInfoMessage "========================================="
+logInfoMessage "Trivy Image Scan Summary"
+logInfoMessage "${FINAL_MESSAGE}"
+logInfoMessage "========================================="
+
+###############################################
+### PIPELINE STATUS
+###############################################
+if [[ "${STATUS}" -eq 0 ]]; then
+
+    logInfoMessage "Trivy image scan completed successfully"
+
+    generateOutput "${ACTIVITY_SUB_TASK_CODE}" true \
+    "${FINAL_MESSAGE}"
+
 else
-    logWarningMessage "Trivy scan failed, but the step is configured as NON-BLOCKING (warning mode).
 
-  If you want the pipeline to FAIL on leaks:
-  - Go to job template settings
-  - Set VALIDATION_FAILURE_ACTION = FAILURE
+    if [[ "${VALIDATION_ACTION}" == "FAILURE" ]]; then
 
-  Current setting allows pipeline to continue."
-    add_event "validation mode" "Successful" "Non-blocking validation" "Scan failed but pipeline continued because VALIDATION_FAILURE_ACTION is not FAILURE"
-    generateOutput ${ACTIVITY_SUB_TASK_CODE} true "$FINAL_MESSAGE"  
+        logErrorMessage "Trivy image scan failed"
+
+        generateOutput "${ACTIVITY_SUB_TASK_CODE}" false \
+        "${FINAL_MESSAGE}"
+
+        exit 1
+
+    else
+
+        logWarningMessage "Validation failure ignored due to NON-BLOCKING mode"
+
+        add_event "validation mode" "Successful" \
+        "Non-blocking validation" \
+        "Pipeline continued despite threshold breach"
+
+        generateOutput "${ACTIVITY_SUB_TASK_CODE}" false \
+        "${FINAL_MESSAGE}"
+    fi
 fi
 
-saveTaskStatus ${STATUS} ${ACTIVITY_SUB_TASK_CODE}
+###############################################
+### SAVE TASK STATUS
+###############################################
+saveTaskStatus "${STATUS}" "${ACTIVITY_SUB_TASK_CODE}"
+
+exit 0

@@ -3,23 +3,26 @@ FROM aquasec/trivy:0.55.2
 WORKDIR /home/buildpiper
 
 
-RUN apk --no-cache add \
-    bash jq gettext libintl curl python3 py3-pip py3-virtualenv docker-cli && \
-    addgroup -g 65522 buildpiper && \
+RUN apk add --no-cache \
+    bash \
+    jq \
+    gettext \
+    libintl \
+    curl \
+    docker-cli \
+    skopeo \
+    aws-cli \
+    python3 \
+    py3-tabulate \
+    py3-cryptography
+
+RUN addgroup -g 65522 buildpiper && \
     adduser -D -h /home/buildpiper -u 65522 -G buildpiper buildpiper && \
     mkdir -p /home/buildpiper && \
     chown -R buildpiper:buildpiper /home/buildpiper
 
-RUN apk --no-cache add aws-cli
-# Create a virtual environment and install Python packages inside it
-RUN python3 -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
-    /opt/venv/bin/pip install --no-cache-dir \
-        tabulate \
-        cryptography
+ENV PATH="/usr/bin:${PATH}"
 
-# Set environment variables to use the virtual environment
-ENV PATH="/opt/venv/bin:$PATH"
 
 ENV DOCKER_CONFIG=/tmp/.docker
 RUN mkdir -p /tmp/.docker && chmod 700 /tmp/.docker

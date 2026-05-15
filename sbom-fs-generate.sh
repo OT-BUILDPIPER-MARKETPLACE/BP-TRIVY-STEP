@@ -7,6 +7,20 @@ source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
 source /opt/buildpiper/shell-functions/getDataFile.sh
 
+cd "${WORKSPACE}/${CODEBASE_DIR}"
+
+###############################################
+### REPORT DIRECTORY
+###############################################
+CODEBASE_LOCATION="${WORKSPACE}/${CODEBASE_DIR}"
+REPORTS_DIR="${CODEBASE_LOCATION}/reports"
+
+mkdir -p "${REPORTS_DIR}"
+chmod -R 777 "${REPORTS_DIR}" || true
+
+logInfoMessage "REPORTS_DIR=${REPORTS_DIR}"
+
+
 if [ "$DEBUG" = true ]; then
   set -x
 fi
@@ -179,6 +193,79 @@ jq -n \
 
 logInfoMessage "Output JSON written to ${EXEC_DIR}/${SBOM_OUTPUT_FILE}"
 add_event "create output" "Successful" "Output file created" "Structured output written to ${SBOM_OUTPUT_FILE}"
+
+###############################################
+### GENERATE CSV REPORT
+###############################################
+SBOM_CSV_REPORT="${EXEC_DIR}/sbom-filesystem-report.csv"
+
+logInfoMessage "Generating CSV report -> ${SBOM_CSV_REPORT}"
+
+echo "Type,Name,Version,PURL,License" > "${SBOM_CSV_REPORT}"
+
+COMPONENT_COUNT=$(jq '.components | length' "${SBOM_REPORT}" 2>/dev/null || echo 0)
+
+if [[ "${COMPONENT_COUNT}" -gt 0 ]]; then
+
+    jq -r '
+      .components[]? |
+      [
+        (.type // "N/A"),
+        (.name // "N/A"),
+        (.version // "N/A"),
+        (.purl // "N/A"),
+        (
+          if .licenses then
+            (.licenses[]?.license.id // .licenses[]?.license.name // "N/A")
+          else
+            "N/A"
+          end
+        )
+      ] | @csv
+    ' "${SBOM_REPORT}" >> "${SBOM_CSV_REPORT}"
+
+    add_event "generate csv report" "Successful" \
+    "CSV report generated" \
+    "Components exported to CSV"
+
+else
+
+    echo '"N/A","No Components Found","N/A","N/A","N/A"' >> "${SBOM_CSV_REPORT}"
+
+    add_event "generate csv report" "Successful" \
+    "No components found" \
+    "Generated empty CSV placeholder row"
+
+fi
+
+chmod 777 "${SBOM_CSV_REPORT}" 2>/dev/null || true
+
+###############################################
+### COPY CSV REPORT TO REPORTS DIRECTORY
+###############################################
+REPORTS_CSV="${REPORTS_DIR}/sbom-filesystem-report.csv"
+
+cp -f "${SBOM_CSV_REPORT}" "${REPORTS_CSV}" 2>/dev/null || true
+cp -f "${SBOM_REPORT}" "${REPORTS_DIR}/${SBOM_FS_REPORT_NAME}" 2>/dev/null || true
+chmod 777 "${REPORTS_CSV}" 2>/dev/null || true
+
+if [[ -f "${REPORTS_CSV}" ]]; then
+
+    add_event "copy csv report" "Successful" \
+    "CSV report copied" \
+    "Copied to ${REPORTS_CSV}"
+
+    logInfoMessage "CSV report copied to reports directory"
+
+else
+
+    add_event "copy csv report" "Failed" \
+    "Failed to copy CSV report" \
+    "${REPORTS_CSV}"
+
+    logErrorMessage "Failed to copy CSV report to reports directory"
+
+fi
 
 ###############################################
 ### SIGNAL PASS/FAIL TO BUILDPIPER PIPELINE
