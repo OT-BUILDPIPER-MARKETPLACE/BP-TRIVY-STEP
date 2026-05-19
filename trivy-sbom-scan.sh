@@ -141,6 +141,7 @@ fi
 if [[ ! -s "${CSV_OUTPUT_PATH}" || $(wc -l < "${CSV_OUTPUT_PATH}") -le 1 ]]; then
     logInfoMessage "No vulnerabilities found. Updating CSV file."
     echo "No vulnerabilities found" > "${CSV_OUTPUT_PATH}"
+    exit 0
 fi
 
 
