@@ -37,11 +37,10 @@ fi
 STATUS=0
 
 logInfoMessage "I'll generate SBOM for filesystem path ${WORKSPACE}/${CODEBASE_DIR}"
-sleep $SLEEP_DURATION
 logInfoMessage "Executing command"
-logInfoMessage "trivy fs --format ${SBOM_FORMAT_ARG} --output reports/${SBOM_FS_REPORT_NAME} ${WORKSPACE}/${CODEBASE_DIR}"
+logInfoMessage "trivy fs --skip-db-update --offline-scan --format ${SBOM_FORMAT_ARG} --output reports/${SBOM_FS_REPORT_NAME} ${WORKSPACE}/${CODEBASE_DIR}"
 
-trivy fs --format ${SBOM_FORMAT_ARG} --output reports/${SBOM_FS_REPORT_NAME} ${WORKSPACE}/${CODEBASE_DIR}
+trivy fs --skip-db-update --offline-scan --format ${SBOM_FORMAT_ARG} --output reports/${SBOM_FS_REPORT_NAME} ${WORKSPACE}/${CODEBASE_DIR}
 STATUS=$?
 
 

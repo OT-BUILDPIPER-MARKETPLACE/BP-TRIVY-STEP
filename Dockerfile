@@ -4,23 +4,11 @@ WORKDIR /home/buildpiper
 
 
 RUN apk --no-cache add \
-    bash jq gettext libintl curl python3 py3-pip py3-virtualenv docker-cli && \
+    bash jq gettext libintl curl python3 py3-tabulate py3-cryptography docker-cli aws-cli && \
     addgroup -g 65522 buildpiper && \
     adduser -D -h /home/buildpiper -u 65522 -G buildpiper buildpiper && \
     mkdir -p /home/buildpiper && \
     chown -R buildpiper:buildpiper /home/buildpiper
-
-RUN apk --no-cache add aws-cli
-# Create a virtual environment and install Python packages inside it
-RUN python3 -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
-    /opt/venv/bin/pip install --no-cache-dir \
-        tabulate \
-        cryptography
-
-# Set environment variables to use the virtual environment
-ENV PATH="/opt/venv/bin:$PATH"
-
 ENV DOCKER_CONFIG=/tmp/.docker
 RUN mkdir -p /tmp/.docker && chmod 700 /tmp/.docker
 
@@ -44,13 +32,9 @@ COPY --chown=buildpiper:buildpiper sbom-image-generate.sh /home/buildpiper/sbom-
 COPY --chown=buildpiper:buildpiper trivy-sbom-scan.sh /home/buildpiper/trivy-sbom-scan.sh
 COPY --chown=buildpiper:buildpiper sbom-fs-generate.sh /home/buildpiper/sbom-fs-generate.sh
 COPY --chown=buildpiper:buildpiper BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
-COPY --chown=buildpiper:buildpiper BP-BASE-SHELL-STEPS/data /opt/buildpiper/data/
 
 # Make the build script executable
 RUN chmod +x /home/buildpiper/*.sh
-
-ADD BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
-ADD BP-BASE-SHELL-STEPS/data /opt/buildpiper/data
 
 # Application and organization info
 ENV APPLICATION_NAME="" \
