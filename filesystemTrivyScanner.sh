@@ -87,9 +87,9 @@ fi
 JSON_REPORT="${EXEC_DIR}/trivy-fs-results.json"
 
 logInfoMessage "Generating JSON report: ${JSON_REPORT}"
-logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --format json -o ${JSON_REPORT} ${WORKSPACE}/${CODEBASE_DIR}"
+logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --scanners vuln --format json -o ${JSON_REPORT} ${WORKSPACE}/${CODEBASE_DIR}"
 
-trivy fs -q --severity "${SCAN_SEVERITY}" --format json -o "${JSON_REPORT}" "${WORKSPACE}/${CODEBASE_DIR}"
+trivy fs -q --severity "${SCAN_SEVERITY}" --scanners vuln --format json -o "${JSON_REPORT}" "${WORKSPACE}/${CODEBASE_DIR}"
 STATUS=$?
 
 logInfoMessage "Trivy scan completed with exit code: ${STATUS}"
