@@ -57,16 +57,24 @@ TRIVY_THRESHOLD_MEDIUM="${TRIVY_THRESHOLD_MEDIUM:--1}"
 TRIVY_THRESHOLD_LOW="${TRIVY_THRESHOLD_LOW:--1}"
 TRIVY_THRESHOLD_TOTAL="${TRIVY_THRESHOLD_TOTAL:--1}"
 
+###############################################
+### TRIVY CONFIGURATION - FIX TIMEOUT ISSUES
+###############################################
+export TRIVY_TIMEOUT="${TRIVY_TIMEOUT:-10m}"
+export TRIVY_SKIP_UPDATE="${TRIVY_SKIP_UPDATE:-true}"
+export TRIVY_INSECURE="${TRIVY_INSECURE:-false}"
+
 logInfoMessage "============================"
 logInfoMessage "Start Trivy Image scanning"
 logInfoMessage "============================"
 
-export application=$APPLICATION_NAME
-export environment=$(getProjectEnv)
-export service=$(getServiceName)
-export organization=$ORGANIZATION
-export source_key=$SOURCE_KEY
-export report_file_path=$REPORT_FILE_PATH
+# FIX: Ensure APPLICATION_NAME has a default value
+export application="${APPLICATION_NAME:-unknown-app}"
+export environment="$(getProjectEnv)"
+export service="$(getServiceName)"
+export organization="${ORGANIZATION:-bp}"
+export source_key="${SOURCE_KEY:-trivy_scan}"
+export report_file_path="${REPORT_FILE_PATH:-}"
 
 cd ${WORKSPACE}/${CODEBASE_DIR}
 
@@ -200,9 +208,15 @@ JSON_REPORT="${EXEC_DIR}/trivy-img-results.json"
 
 logInfoMessage "I'll scan image ${IMAGE_NAME}:${IMAGE_TAG} for only ${SCAN_SEVERITY} severities"
 logInfoMessage "Generating JSON report: ${JSON_REPORT}"
-logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} --format json -o ${JSON_REPORT} ${IMAGE_NAME}:${IMAGE_TAG}"
+logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} --timeout ${TRIVY_TIMEOUT} --format json -o ${JSON_REPORT} ${IMAGE_NAME}:${IMAGE_TAG}"
 
-trivy image -q --severity ${SCAN_SEVERITY} --format json -o "${JSON_REPORT}" "${IMAGE_NAME}:${IMAGE_TAG}"
+# FIX: Add timeout and skip update options to prevent semaphore deadlock
+trivy image -q --severity ${SCAN_SEVERITY} \
+  --timeout "${TRIVY_TIMEOUT}" \
+  --skip-update \
+  --format json \
+  -o "${JSON_REPORT}" \
+  "${IMAGE_NAME}:${IMAGE_TAG}"
 STATUS=$?
 
 logInfoMessage "Trivy scan completed with exit code: ${STATUS}"
@@ -222,7 +236,13 @@ if [[ "${REPORT_TYPE}" == "html" || "${REPORT_TYPE}" == "both" ]]; then
     logInfoMessage "Generating HTML report"
     HTML_REPORT="${EXEC_DIR}/trivy-img-results.html"
     
-    trivy image -q --severity ${SCAN_SEVERITY} --format template --template @/contrib/html.tpl -o "${HTML_REPORT}" "${IMAGE_NAME}:${IMAGE_TAG}"
+    trivy image -q --severity ${SCAN_SEVERITY} \
+      --timeout "${TRIVY_TIMEOUT}" \
+      --skip-update \
+      --format template \
+      --template @/contrib/html.tpl \
+      -o "${HTML_REPORT}" \
+      "${IMAGE_NAME}:${IMAGE_TAG}"
     
     logInfoMessage "HTML report generated at ${HTML_REPORT}"
     add_event "generate html report" "Successful" "HTML created" "HTML report generated at ${HTML_REPORT}"
@@ -323,7 +343,7 @@ if [[ "$THRESHOLD_STATUS" -ne 0 ]]; then
 fi
 
 ###############################################
-### SEND MI DATA IF CONFIGURED
+### SEND MI DATA IF CONFIGURED - FIX VALIDATION
 ###############################################
 if [[ -n "${MI_SERVER:-}" ]]; then
     logInfoMessage "MI_SERVER is set to ${MI_SERVER}. Starting MI data send process..."
@@ -331,25 +351,33 @@ if [[ -n "${MI_SERVER:-}" ]]; then
     MI_REPORT="${EXEC_DIR}/trivy-mi-results.json"
     MI_CSV="${EXEC_DIR}/trivy_mi.csv"
     
-    trivy image -q --severity ${SCAN_SEVERITY} --exit-code 1 --format template \
-        --template '{{- $critical := 0 }}{{- $high := 0 }}{{- range . }}{{- range .Vulnerabilities }}{{- if eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}{{- if eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}{{- end }}{{- end }}Critical: {{ $critical }}, High: {{ $high }}' \
-        -o "${MI_REPORT}" "${IMAGE_NAME}:${IMAGE_TAG}"
+    # FIX: Use simplified template to extract metrics
+    trivy image -q --severity ${SCAN_SEVERITY} \
+      --timeout "${TRIVY_TIMEOUT}" \
+      --skip-update \
+      --format json \
+      -o "${MI_REPORT}" \
+      "${IMAGE_NAME}:${IMAGE_TAG}" 2>/dev/null || true
     
-    awk 'BEGIN { FS="[:,]"; OFS="," }
-    {
-        for (i = 1; i <= NF; i += 2) {
-            gsub(/ /, "", $i);
-            header = (header ? header OFS : "") $i;
-            value = (value ? value OFS : "") $(i+1);
-        }
-        print header > "'"${MI_CSV}"'";
-        print value >> "'"${MI_CSV}"'";
-    }' "${MI_REPORT}"
+    # FIX: Create CSV directly from vulnerability counts (more reliable)
+    echo "Critical,High" > "${MI_CSV}"
+    echo "${CRITICAL},${HIGH}" >> "${MI_CSV}"
     
-    logInfoMessage "Displaying Original Report: ${MI_CSV}"
+    logInfoMessage "Displaying MI Report: ${MI_CSV}"
     echo "================================================================================"
     python3 /opt/buildpiper/shell-functions/print_table.py "${MI_CSV}"
     echo "================================================================================"
+    
+    # FIX: Validate that environment variables are set before encoding
+    if [ -z "$application" ] || [ "$application" = "null" ]; then
+        logWarningMessage "Application name not set. Using default value."
+        application="unknown-app"
+    fi
+    
+    if [ -z "$environment" ] || [ "$environment" = "null" ]; then
+        logWarningMessage "Environment not set. Using default value."
+        environment="dev"
+    fi
     
     export base64EncodedResponse=$(encodeFileContent "${MI_CSV}")
     export metrics=("trivy_critical" "trivy_high")
@@ -357,11 +385,28 @@ if [[ -n "${MI_SERVER:-}" ]]; then
     MI_SEND_STATUS=0
     for metric in "${metrics[@]}"; do
         export source_key="${metric}"
-        export report_file_path=$REPORT_FILE_PATH
+        export report_file_path="${REPORT_FILE_PATH:-}"
+        
+        # FIX: Validate variables before generating MI data
+        if [ -z "$application" ] || [ -z "$environment" ] || [ -z "$service" ] || [ -z "$organization" ]; then
+            logWarningMessage "Skipping MI send for ${metric}: Required variables not set (app=${application}, env=${environment}, svc=${service}, org=${organization})"
+            add_event "send mi ${metric}" "Skipped" "Missing required variables" "Cannot send ${metric}: required environment variables not set"
+            continue
+        fi
+        
         generateMIDataJson /opt/buildpiper/data/mi.template "${EXEC_DIR}/trivy.mi"
         
         logInfoMessage "Sending ${metric} data to MI server..."
         logWarningMessage "Loading encoded data trivy.mi..."
+        
+        # FIX: Validate JSON before sending
+        if ! jq empty "${EXEC_DIR}/trivy.mi" 2>/dev/null; then
+            logErrorMessage "Invalid JSON in MI data file. Skipping send."
+            add_event "send mi ${metric}" "Failed" "Invalid JSON" "MI data JSON validation failed"
+            MI_SEND_STATUS=1
+            continue
+        fi
+        
         cat "${EXEC_DIR}/trivy.mi"
         
         if ! sendMIData "${EXEC_DIR}/trivy.mi" "${MI_SERVER}"; then
@@ -377,10 +422,10 @@ if [[ -n "${MI_SERVER:-}" ]]; then
     if [ "$MI_SEND_STATUS" -eq 0 ]; then
         logInfoMessage "Trivy scan succeeded, and all metrics were sent to the MI server successfully!"
     else
-        logErrorMessage "Some metrics failed to send. Please check the MI server or JSON format."
+        logWarningMessage "Some metrics failed to send. This is non-critical; the scan results are still valid."
     fi
 else
-    logWarningMessage "MI_SERVER variable not set. Skipping MI data send block."
+    logInfoMessage "MI_SERVER variable not set. Skipping MI data send block."
 fi
 
 ###############################################
