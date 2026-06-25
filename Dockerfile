@@ -1,4 +1,4 @@
-FROM aquasec/trivy:0.55.2
+FROM aquasec/trivy:0.71.2
 
 WORKDIR /home/buildpiper
 
