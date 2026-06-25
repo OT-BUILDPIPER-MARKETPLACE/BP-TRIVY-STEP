@@ -213,7 +213,6 @@ logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} --timeout $
 # FIX: Add timeout and skip update options to prevent semaphore deadlock
 trivy image -q --severity ${SCAN_SEVERITY} \
   --timeout "${TRIVY_TIMEOUT}" \
-  --skip-update \
   --format json \
   -o "${JSON_REPORT}" \
   "${IMAGE_NAME}:${IMAGE_TAG}"
@@ -238,7 +237,6 @@ if [[ "${REPORT_TYPE}" == "html" || "${REPORT_TYPE}" == "both" ]]; then
     
     trivy image -q --severity ${SCAN_SEVERITY} \
       --timeout "${TRIVY_TIMEOUT}" \
-      --skip-update \
       --format template \
       --template @/contrib/html.tpl \
       -o "${HTML_REPORT}" \
@@ -354,7 +352,6 @@ if [[ -n "${MI_SERVER:-}" ]]; then
     # FIX: Use simplified template to extract metrics
     trivy image -q --severity ${SCAN_SEVERITY} \
       --timeout "${TRIVY_TIMEOUT}" \
-      --skip-update \
       --format json \
       -o "${MI_REPORT}" \
       "${IMAGE_NAME}:${IMAGE_TAG}" 2>/dev/null || true
