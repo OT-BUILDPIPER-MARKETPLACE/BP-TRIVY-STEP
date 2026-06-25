@@ -58,17 +58,16 @@ TRIVY_THRESHOLD_LOW="${TRIVY_THRESHOLD_LOW:--1}"
 TRIVY_THRESHOLD_TOTAL="${TRIVY_THRESHOLD_TOTAL:--1}"
 
 ###############################################
-### TRIVY CONFIGURATION - FIX TIMEOUT ISSUES
+### TRIVY CONFIGURATION
 ###############################################
 export TRIVY_TIMEOUT="${TRIVY_TIMEOUT:-10m}"
-export TRIVY_SKIP_UPDATE="${TRIVY_SKIP_UPDATE:-true}"
 export TRIVY_INSECURE="${TRIVY_INSECURE:-false}"
 
 logInfoMessage "============================"
 logInfoMessage "Start Trivy Image scanning"
 logInfoMessage "============================"
 
-# FIX: Ensure APPLICATION_NAME has a default value
+# Ensure APPLICATION_NAME has a default value
 export application="${APPLICATION_NAME:-unknown-app}"
 export environment="$(getProjectEnv)"
 export service="$(getServiceName)"
@@ -210,7 +209,7 @@ logInfoMessage "I'll scan image ${IMAGE_NAME}:${IMAGE_TAG} for only ${SCAN_SEVER
 logInfoMessage "Generating JSON report: ${JSON_REPORT}"
 logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} --timeout ${TRIVY_TIMEOUT} --format json -o ${JSON_REPORT} ${IMAGE_NAME}:${IMAGE_TAG}"
 
-# FIX: Add timeout and skip update options to prevent semaphore deadlock
+# FIX: REMOVED --skip-update flag to allow database initialization on first run
 trivy image -q --severity ${SCAN_SEVERITY} \
   --timeout "${TRIVY_TIMEOUT}" \
   --format json \
@@ -341,7 +340,7 @@ if [[ "$THRESHOLD_STATUS" -ne 0 ]]; then
 fi
 
 ###############################################
-### SEND MI DATA IF CONFIGURED - FIX VALIDATION
+### SEND MI DATA IF CONFIGURED
 ###############################################
 if [[ -n "${MI_SERVER:-}" ]]; then
     logInfoMessage "MI_SERVER is set to ${MI_SERVER}. Starting MI data send process..."
@@ -349,14 +348,7 @@ if [[ -n "${MI_SERVER:-}" ]]; then
     MI_REPORT="${EXEC_DIR}/trivy-mi-results.json"
     MI_CSV="${EXEC_DIR}/trivy_mi.csv"
     
-    # FIX: Use simplified template to extract metrics
-    trivy image -q --severity ${SCAN_SEVERITY} \
-      --timeout "${TRIVY_TIMEOUT}" \
-      --format json \
-      -o "${MI_REPORT}" \
-      "${IMAGE_NAME}:${IMAGE_TAG}" 2>/dev/null || true
-    
-    # FIX: Create CSV directly from vulnerability counts (more reliable)
+    # Create CSV directly from vulnerability counts (more reliable)
     echo "Critical,High" > "${MI_CSV}"
     echo "${CRITICAL},${HIGH}" >> "${MI_CSV}"
     
@@ -365,7 +357,7 @@ if [[ -n "${MI_SERVER:-}" ]]; then
     python3 /opt/buildpiper/shell-functions/print_table.py "${MI_CSV}"
     echo "================================================================================"
     
-    # FIX: Validate that environment variables are set before encoding
+    # Validate that environment variables are set before encoding
     if [ -z "$application" ] || [ "$application" = "null" ]; then
         logWarningMessage "Application name not set. Using default value."
         application="unknown-app"
@@ -384,7 +376,7 @@ if [[ -n "${MI_SERVER:-}" ]]; then
         export source_key="${metric}"
         export report_file_path="${REPORT_FILE_PATH:-}"
         
-        # FIX: Validate variables before generating MI data
+        # Validate variables before generating MI data
         if [ -z "$application" ] || [ -z "$environment" ] || [ -z "$service" ] || [ -z "$organization" ]; then
             logWarningMessage "Skipping MI send for ${metric}: Required variables not set (app=${application}, env=${environment}, svc=${service}, org=${organization})"
             add_event "send mi ${metric}" "Skipped" "Missing required variables" "Cannot send ${metric}: required environment variables not set"
@@ -396,7 +388,7 @@ if [[ -n "${MI_SERVER:-}" ]]; then
         logInfoMessage "Sending ${metric} data to MI server..."
         logWarningMessage "Loading encoded data trivy.mi..."
         
-        # FIX: Validate JSON before sending
+        # Validate JSON before sending
         if ! jq empty "${EXEC_DIR}/trivy.mi" 2>/dev/null; then
             logErrorMessage "Invalid JSON in MI data file. Skipping send."
             add_event "send mi ${metric}" "Failed" "Invalid JSON" "MI data JSON validation failed"
