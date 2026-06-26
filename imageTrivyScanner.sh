@@ -207,10 +207,11 @@ JSON_REPORT="${EXEC_DIR}/trivy-img-results.json"
 
 logInfoMessage "I'll scan image ${IMAGE_NAME}:${IMAGE_TAG} for only ${SCAN_SEVERITY} severities"
 logInfoMessage "Generating JSON report: ${JSON_REPORT}"
-logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} --timeout ${TRIVY_TIMEOUT} --format json -o ${JSON_REPORT} ${IMAGE_NAME}:${IMAGE_TAG}"
+logInfoMessage "Executing trivy image -q --severity ${SCAN_SEVERITY} --scanners vuln --timeout ${TRIVY_TIMEOUT} --format json -o ${JSON_REPORT} ${IMAGE_NAME}:${IMAGE_TAG}"
 
 # FIX: REMOVED --skip-update flag to allow database initialization on first run
 trivy image -q --severity ${SCAN_SEVERITY} \
+  --scanners vuln \
   --timeout "${TRIVY_TIMEOUT}" \
   --format json \
   -o "${JSON_REPORT}" \
@@ -235,6 +236,7 @@ if [[ "${REPORT_TYPE}" == "html" || "${REPORT_TYPE}" == "both" ]]; then
     HTML_REPORT="${EXEC_DIR}/trivy-img-results.html"
     
     trivy image -q --severity ${SCAN_SEVERITY} \
+      --scanners vuln \
       --timeout "${TRIVY_TIMEOUT}" \
       --format template \
       --template @/contrib/html.tpl \
