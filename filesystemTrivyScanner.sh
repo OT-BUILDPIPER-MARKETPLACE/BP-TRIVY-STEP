@@ -109,7 +109,7 @@ if [[ "${REPORT_TYPE}" == "html" || "${REPORT_TYPE}" == "both" ]]; then
     logInfoMessage "Generating HTML report"
     HTML_REPORT="${EXEC_DIR}/trivy-fs-results.html"
     
-    trivy fs -q --severity ${SCAN_SEVERITY} --format template --template @/contrib/html.tpl -o "${HTML_REPORT}" "${WORKSPACE}/${CODEBASE_DIR}"
+    trivy fs -q --severity ${SCAN_SEVERITY} --scanners vuln --format template --template @/contrib/html.tpl -o "${HTML_REPORT}" "${WORKSPACE}/${CODEBASE_DIR}"
     
     logInfoMessage "HTML report generated at ${HTML_REPORT}"
     add_event "generate html report" "Successful" "HTML created" "HTML report generated at ${HTML_REPORT}"
