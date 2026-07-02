@@ -3,8 +3,8 @@ FROM aquasec/trivy:0.55.2
 WORKDIR /home/buildpiper
 
 
-RUN apk --no-cache add \
-    bash jq gettext libintl curl python3 py3-pip py3-virtualenv docker-cli && \
+RUN apk --no-cache add --upgrade \
+    bash jq gettext libintl curl expat python3 py3-pip py3-setuptools py3-virtualenv docker-cli && \
     addgroup -g 65522 buildpiper && \
     adduser -D -h /home/buildpiper -u 65522 -G buildpiper buildpiper && \
     mkdir -p /home/buildpiper && \
@@ -12,8 +12,8 @@ RUN apk --no-cache add \
 
 RUN apk --no-cache add aws-cli
 # Create a virtual environment and install Python packages inside it
-RUN python3 -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
+RUN python3 -m virtualenv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel && \
     /opt/venv/bin/pip install --no-cache-dir \
         tabulate \
         cryptography
