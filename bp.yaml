@@ -1,0 +1,6 @@
+image: registry.buildpiper.in/okts/trivy-scan
+current tag: 0.5.13.4-sbom-fs-scan 
+
+# Changes in this Tag
+# - The Trivy HTML report is now generated as a ZIP file, enabling users to download and open the report without any size-related issues.
+# - The Trivy scan timeout has been increased to 60 minutes, allowing scans of larger repositories to complete successfully.
