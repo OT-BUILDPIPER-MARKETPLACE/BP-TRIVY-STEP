@@ -4,7 +4,7 @@ WORKDIR /home/buildpiper
 
 
 RUN apk --no-cache add \
-    bash jq gettext libintl curl python3 py3-tabulate py3-cryptography docker-cli aws-cli && \
+    bash jq gettext libintl curl python3 py3-tabulate py3-cryptography docker-cli aws-cli zip && \
     addgroup -g 65522 buildpiper && \
     adduser -D -h /home/buildpiper -u 65522 -G buildpiper buildpiper && \
     mkdir -p /home/buildpiper && \
@@ -28,7 +28,8 @@ COPY --chown=buildpiper:buildpiper login.sh /home/buildpiper/login.sh
 COPY --chown=buildpiper:buildpiper imageTrivyScanner.sh /home/buildpiper/imageTrivyScanner.sh
 COPY --chown=buildpiper:buildpiper filesystemTrivyScanner.sh /home/buildpiper/filesystemTrivyScanner.sh
 COPY --chown=buildpiper:buildpiper template2CSV.sh /home/buildpiper/template2CSV.sh
-COPY --chown=buildpiper:buildpiper sbom-image-generate.sh /home/buildpiper/sbom-image-generate.sh
+COPY --chown=buildpiper:buildpiper sbom-image-generate.sh /home/buildpiper/sbom-image-generate.sh 
+COPY --chown=buildpiper:buildpiper trivy.tpl /opt/trivy.tpl
 COPY --chown=buildpiper:buildpiper trivy-sbom-scan.sh /home/buildpiper/trivy-sbom-scan.sh
 COPY --chown=buildpiper:buildpiper sbom-fs-generate.sh /home/buildpiper/sbom-fs-generate.sh
 COPY --chown=buildpiper:buildpiper BP-BASE-SHELL-STEPS /opt/buildpiper/shell-functions/
