@@ -36,8 +36,7 @@ if [[ "${REPORT_TYPE}" == "json" || "${REPORT_TYPE}" == "both" ]]; then
         logInfoMessage "Generating JSON report: ${JSON_REPORT}"
         logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --format json -o ${JSON_REPORT} ${WORKSPACE}/${CODEBASE_DIR}"
 
-        trivy fs -q --severity "${SCAN_SEVERITY}" --format json -o "${JSON_REPORT}" "${WORKSPACE}/${CODEBASE_DIR}"
-
+        trivy fs -q --timeout "${TRIVY_TIMEOUT:-60m}" --severity "${SCAN_SEVERITY}" --format json -o "${JSON_REPORT}" "${WORKSPACE}/${CODEBASE_DIR}"
         logInfoMessage "Generating JSON report at ${JSON_REPORT}"
         STATUS=$?
 
@@ -45,12 +44,11 @@ if [[ "${REPORT_TYPE}" == "json" || "${REPORT_TYPE}" == "both" ]]; then
 
         logInfoMessage "Generating HTML report"
         logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} ${WORKSPACE}/${CODEBASE_DIR}"
-        trivy fs -q --severity ${SCAN_SEVERITY} "${WORKSPACE}/${CODEBASE_DIR}"
+        trivy fs -q --timeout "${TRIVY_TIMEOUT:-60m}" --severity "${SCAN_SEVERITY}" "${WORKSPACE}/${CODEBASE_DIR}"
 
         logInfoMessage "trivy fs -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_FS_ARG} ${WORKSPACE}/${CODEBASE_DIR}"
 
-        trivy fs -q --severity ${SCAN_SEVERITY} --exit-code 1 ${FORMAT_ARG} ${OUTPUT_FS_ARG} "${WORKSPACE}/${CODEBASE_DIR}"
-
+        trivy fs -q --timeout "${TRIVY_TIMEOUT:-60m}" --severity "${SCAN_SEVERITY}" --exit-code 1 ${FORMAT_ARG} ${OUTPUT_FS_ARG} "${WORKSPACE}/${CODEBASE_DIR}"
         STATUS=$?
 
         logWarningMessage "=============================================================="
